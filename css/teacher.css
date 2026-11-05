@@ -1,0 +1,30 @@
+body.teacher { overflow: auto; background: #ece8dc; }
+body.teacher main { max-width: 1400px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.top h1 { margin: 0; font: 800 1.6rem var(--mono); }
+h2 { font: 800 1.2rem var(--mono); margin: 0 0 8px; }
+.filebtn.wide { display: block; text-align: center; }
+#unlockForm { display: flex; flex-direction: column; gap: 8px; }
+#pw, .window input[type=password], #tokIds { font: 600 1.1rem var(--mono); padding: .4em .6em; border: 3px solid #2a2a2a; width: 100%; }
+.tw { overflow-x: auto; background: #fff; border: 3px solid #2a2a2a; }
+table.grid { border-collapse: collapse; width: 100%; font-size: .9rem; font-variant-numeric: tabular-nums; }
+table.grid th, table.grid td { border-bottom: 1px solid #ddd; padding: 6px 8px; text-align: left; white-space: nowrap; }
+table.grid th { background: #e6e0cf; position: sticky; top: 0; font-size: .8rem; }
+table.grid th.b { writing-mode: vertical-rl; transform: rotate(180deg); height: 120px; vertical-align: bottom; }
+table.grid tbody tr { cursor: pointer; }
+table.grid tbody tr:hover { background: #fff8de; }
+table.grid tr.sel { background: #fff1b8; }
+td.cell { text-align: center !important; font-size: .8rem; }
+.g { background: #d6ecd0; } .y { background: #fbefc4; } .r { background: #f6d3cf; } .n { color: #aaa; }
+td input.name { width: 9em; padding: 2px 4px; border: 1px solid #aaa; font: inherit; }
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.sum .tile { background: #fff; border: 3px solid #2a2a2a; padding: 10px 12px; }
+.sum .tile b { display: block; font: 800 1.5rem var(--mono); }
+.sum .tile span { color: var(--muted); font-size: .85rem; }
+#detail { background: #fff; border: 3px solid #2a2a2a; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+#detail .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { #detail .cols { grid-template-columns: 1fr; } }
+.log { max-height: 420px; overflow: auto; }
+.ok { color: var(--good); font-weight: 700; } .no { color: var(--bad); font-weight: 700; }
+.tokcard { border: 2px dashed #888; padding: 8px 12px; margin: 6px 0; font: 600 1.1rem var(--mono); background: #fff; }
+pre.hashes { background: #fff; border: 1px solid #aaa; padding: 8px; white-space: pre-wrap; word-break: break-all; font-size: .75rem; }

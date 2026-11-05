@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MathWelt 3A</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Anmeldung -->
+<section id="login" class="screen">
+  <div class="card">
+    <h1>MathWelt <span>3A</span></h1>
+    <p class="lead">Gleichungen lösen und Alt und Jung · mathbuch 3, LU 11 und LU 10</p>
+    <form id="loginForm" autocomplete="off">
+      <label for="tokenInput">Dein persönlicher Code (steht auf deiner Karte unter dem QR-Code)</label>
+      <input id="tokenInput" type="text" placeholder="3A07-XXXX-XXXX-XXXX" spellcheck="false" autocapitalize="characters">
+      <div class="row">
+        <button id="loginBtn" type="submit" class="primary">Anmelden</button>
+        <button id="scanBtn" type="button">QR-Code mit Kamera scannen</button>
+      </div>
+      <p id="loginError" class="error" role="alert"></p>
+    </form>
+    <div id="qrWrap" hidden><video id="qrVideo" playsinline muted></video><button id="qrCancel" type="button">Abbrechen</button></div>
+    <p class="small">Du spielst nur mit deiner ID, nicht mit deinem Namen. Dein Spielstand wird verschlüsselt gespeichert.</p>
+  </div>
+</section>
+
+<!-- Willkommen (erstes Mal auf diesem Gerät) -->
+<section id="welcome" class="screen" hidden>
+  <div class="card">
+    <h2>Willkommen, <span id="welcomeId"></span>!</h2>
+    <p>Auf diesem Gerät gibt es noch keinen Spielstand für dich.</p>
+    <div class="row">
+      <button id="newGameBtn" class="primary">Neues Spiel starten</button>
+      <label class="filebtn">Spielstand-Datei laden<input id="loadFile" type="file" accept=".mw3a,application/json"></label>
+    </div>
+    <p id="welcomeError" class="error"></p>
+    <p class="small">Hast du schon auf einem anderen Gerät gespielt? Dann lade deine Datei «MathWelt3A_…mw3a».</p>
+  </div>
+</section>
+
+<!-- Spiel -->
+<section id="game" hidden>
+  <canvas id="view"></canvas>
+  <div id="labels"></div>
+  <div id="crosshair"></div>
+
+  <div id="hud">
+    <div class="who"><span id="hudId"></span><span id="hudLevel"></span></div>
+    <div class="coins"><i class="coin"></i><b id="hudCoins">0</b> Coins</div>
+    <div class="bar"><div id="hudBar"></div></div>
+    <div id="hudNext" class="small"></div>
+  </div>
+  <div id="menu">
+    <button id="mapBtn" title="Karte (M)">Karte</button>
+    <button id="saveBtn" title="Spielstand als Datei speichern">Speichern</button>
+    <button id="helpBtn" title="Hilfe (H)">Hilfe</button>
+    <button id="logoutBtn">Abmelden</button>
+  </div>
+  <div id="prompt" hidden></div>
+  <div id="toast" hidden></div>
+
+  <!-- Aufgaben -->
+  <div id="panel" class="overlay" hidden>
+    <div class="window">
+      <header><h2 id="pTitle"></h2><button id="closeBtn" class="x" title="Zurück in die Welt (Esc)">Zurück in die Welt</button></header>
+      <p id="pMeta" class="meta"></p>
+      <div id="pStages" class="stages"></div>
+      <div id="pQuestion" class="question"></div>
+      <div id="pAnswer" class="answer"></div>
+      <div id="pHint" class="hint" hidden></div>
+      <div id="pFeedback"></div>
+      <div class="actions">
+        <button id="hintBtn">Lösungshilfe</button>
+        <button id="checkBtn" class="primary">Prüfen (Enter)</button>
+        <button id="nextBtn" class="primary" hidden>Nächste Aufgabe (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level-Turm -->
+  <div id="levelPanel" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2>Level-Turm</h2><button id="lvClose" class="x">Zurück in die Welt</button></header>
+      <div id="lvBody"></div>
+      <div class="actions"><button id="lvUp" class="primary">Aufsteigen</button></div>
+    </div>
+  </div>
+
+  <!-- Karte -->
+  <div id="map" class="overlay" hidden>
+    <div class="window">
+      <header><h2>Karte</h2><button id="mapClose" class="x">Schliessen</button></header>
+      <p class="small">Klicke auf ein Gebäude in der Karte oder in der Liste, um direkt vor die Tür zu reisen. Links (rot): LU 11 Gleichungen lösen, rechts (braun): LU 10 Alt und Jung. Der gelbe Pfeil bist du.</p>
+      <div class="mapwrap"><canvas id="mapCanvas" width="504" height="504"></canvas><ol id="mapLegend"></ol></div>
+    </div>
+  </div>
+
+  <!-- Hilfe -->
+  <div id="help" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2>So spielst du</h2><button id="helpClose" class="x">Los geht's</button></header>
+      <table class="keys">
+        <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> oder <kbd>↑</kbd><kbd>↓</kbd></td><td>gehen</td></tr>
+        <tr><td><kbd>←</kbd><kbd>→</kbd></td><td>drehen</td></tr>
+        <tr><td>Touchpad / Maus</td><td>Klicke ins Bild, dann umschauen. <kbd>Esc</kbd> gibt die Maus wieder frei. Ohne Klick: mit gedrückter Taste ziehen.</td></tr>
+        <tr><td><kbd>Leertaste</kbd> · <kbd>Shift</kbd></td><td>springen · rennen</td></tr>
+        <tr><td><kbd>E</kbd></td><td>Gebäude betreten, wenn du drin stehst</td></tr>
+        <tr><td><kbd>M</kbd> · <kbd>H</kbd></td><td>Karte · Hilfe</td></tr>
+      </table>
+      <p>In jedem Gebäude gibt es Aufgaben auf drei Niveaus: <b>★ Grundanspruch</b> (5 Coins), <b>★★ Standard</b> (10 Coins) und <b>★★★ Erweiterung</b> (20 Coins). Die Erweiterung öffnet sich, wenn du 3 Standard-Aufgaben richtig gelöst hast.</p>
+      <p>Mit einer Lösungshilfe oder im zweiten Versuch gibt es die halbe Belohnung. Im <b>Level-Turm</b> tauschst du Coins gegen ein höheres Level.</p>
+      <p><b>Wichtig:</b> Dein Spiel wird auf diesem Gerät gespeichert. Klicke am Ende der Lektion auf <b>Speichern</b> und gib die Datei ab.</p>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>

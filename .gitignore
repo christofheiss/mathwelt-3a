@@ -1,0 +1,9 @@
+# Geheimnisse – niemals committen
+private/
+*.mw3akey
+*.mw3a
+tokens*.json
+Token-Karten*.pdf
+node_modules/
+__pycache__/
+.DS_Store

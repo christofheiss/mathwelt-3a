@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MathWelt 3A · Masterview</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/teacher.css">
+</head>
+<body class="teacher">
+
+<section id="lock" class="screen">
+  <div class="card">
+    <h1>Masterview <span>3A</span></h1>
+    <p class="lead">Nur für die Lehrperson. Lade deinen Dongle und gib das Passwort ein.</p>
+    <form id="unlockForm" autocomplete="off">
+      <label class="filebtn wide">1. Dongle-Datei wählen (…dongle.mw3akey)<input id="dongleFile" type="file" accept=".mw3akey,application/json"></label>
+      <span id="dongleName" class="small">Keine Datei gewählt</span>
+      <label for="pw">2. Passwort</label>
+      <input id="pw" type="password" autocomplete="current-password">
+      <button class="primary" type="submit" id="unlockBtn">Entsperren</button>
+      <p id="lockError" class="error" role="alert"></p>
+    </form>
+    <p class="small">Die Spielstände werden nur in diesem Browserfenster entschlüsselt. Es wird nichts hochgeladen.</p>
+  </div>
+</section>
+
+<main id="app" hidden>
+  <header class="top">
+    <h1>Masterview MathWelt 3A</h1>
+    <div class="row">
+      <label class="filebtn">Spielstände laden (.mw3a)<input id="saves" type="file" accept=".mw3a,application/json" multiple></label>
+      <button id="csvBtn">CSV exportieren</button>
+      <button id="tokensBtn">Neue Tokens</button>
+      <button id="dongleBtn">Dongle speichern / Passwort ändern</button>
+      <button id="lockBtn">Sperren</button>
+    </div>
+  </header>
+  <p id="status" class="small">Noch keine Spielstände geladen. Wähle die abgegebenen Dateien aus (mehrere gleichzeitig möglich).</p>
+
+  <section class="sum" id="classSummary"></section>
+  <section>
+    <h2>Übersicht</h2>
+    <div class="tw"><table id="overview" class="grid"></table></div>
+    <p class="small">Gebäude-Spalten: höchstes Niveau mit mindestens 3 richtigen Aufgaben (★ bis ★★★) und Trefferquote. Farbe: grün ≥ 80 %, gelb 50–79 %, rot &lt; 50 %. Namen sind nur im Dongle gespeichert.</p>
+  </section>
+  <section id="detail" hidden></section>
+
+  <div id="tokensDlg" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2>Neue Tokens erzeugen</h2><button class="x" id="tokClose">Schliessen</button></header>
+      <p>Erzeugt neue Zugangscodes. Danach müssen die angezeigten Prüfwerte in <code>js/config.js</code> bei <code>tokenHashes</code> ergänzt und auf GitHub hochgeladen werden.</p>
+      <div class="row"><label>IDs (durch Komma getrennt) <input id="tokIds" type="text" value="3A19, 3A20"></label><button class="primary" id="tokMake">Erzeugen</button></div>
+      <div id="tokOut"></div>
+    </div>
+  </div>
+  <div id="dongleDlg" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2>Dongle speichern</h2><button class="x" id="dgClose">Schliessen</button></header>
+      <p>Speichert einen neuen Dongle mit den eingetragenen Namen und neuen Tokens. Die alte Dongle-Datei danach löschen.</p>
+      <label>Neues Passwort (mind. 10 Zeichen) <input id="pw1" type="password" autocomplete="new-password"></label>
+      <label>Passwort wiederholen <input id="pw2" type="password" autocomplete="new-password"></label>
+      <p id="dgError" class="error"></p>
+      <div class="actions"><button class="primary" id="dgSave">Dongle herunterladen</button></div>
+    </div>
+  </div>
+</main>
+
+<script type="module" src="js/teacher.js"></script>
+</body>
+</html>
