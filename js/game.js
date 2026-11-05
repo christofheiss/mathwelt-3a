@@ -40,7 +40,25 @@ async function downloadSave() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `MathWelt3A_${S.id}_${stamp}.mw3a`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   S.unsavedSince = 0; await saveLocal(); updateHud();
-  toast('Spielstand-Datei gespeichert. Gib sie wie besprochen ab (z. B. in LearningView).');
+  toast(CONFIG.saveUrl ? 'Spielstand-Datei gespeichert. Damit kannst du auf einem anderen Gerät weiterspielen.' : 'Spielstand-Datei gespeichert. Gib sie wie besprochen ab (z. B. in LearningView).');
+}
+// Speichern-Knopf: lädt den verschlüsselten Stand hoch. Ohne Worker oder bei einem Fehler wird die Datei heruntergeladen.
+async function saveOnline() {
+  if (!CONFIG.saveUrl) return downloadSave();
+  const btn = $('#saveBtn'); if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Speichert …';
+  try {
+    await saveLocal();
+    const file = await K.sealSave(S, sKey, CONFIG.teacherPublicKey);
+    const res = await fetch(CONFIG.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, file }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    S.unsavedSince = 0; await saveLocal(); updateHud();
+    toast('Spielstand online gespeichert.');
+  } catch (e) {
+    console.warn('Online-Speichern nicht möglich', e);
+    await downloadSave();
+    toast('Online-Speichern hat nicht geklappt. Dein Spielstand wurde als Datei heruntergeladen: Gib sie bitte ab.', 8000);
+  } finally { btn.disabled = false; btn.textContent = 'Speichern'; }
 }
 async function loadFile(file) {
   const data = JSON.parse(await file.text());
@@ -264,7 +282,7 @@ async function check() {
       : `<b>Leider nicht richtig.</b> So geht es:<div class="sol">${t.sol}</div>`;
     $('#checkBtn').hidden = true; $('#hintBtn').hidden = true; $('#nextBtn').hidden = false; $('#nextBtn').focus();
     updateHud(); renderStages(); await saveLocal();
-    if (S.unsavedSince === 10) toast('Tipp: Speichere deinen Spielstand als Datei (Knopf «Speichern»).', 5000);
+    if (S.unsavedSince === 10) toast(CONFIG.saveUrl ? 'Tipp: Speichere deinen Spielstand (Knopf «Speichern»).' : 'Tipp: Speichere deinen Spielstand als Datei (Knopf «Speichern»).', 5000);
   } else {
     $('#pFeedback').className = 'bad';
     $('#pFeedback').innerHTML = `<b>Noch nicht ganz.</b> ${current.parts.length > 1 ? 'Kontrolliere: ' + results.map((r, i) => (r ? '' : esc(current.parts[i].label))).filter(Boolean).join(', ') + '. ' : ''}Du hast noch einen Versuch.`;
@@ -374,7 +392,13 @@ function setupInput() {
   $('#mapBtn').onclick = showMap; $('#mapClose').onclick = () => { $('#map').hidden = true; paused = false; };
   $('#mapCanvas').onclick = mapClick;
   $('#helpBtn').onclick = showHelp; $('#helpClose').onclick = () => { $('#help').hidden = true; paused = false; };
-  $('#saveBtn').onclick = downloadSave;
+  $('#saveBtn').onclick = saveOnline;
+  $('#fileBtn').onclick = downloadSave;
+  if (CONFIG.saveUrl) {
+    $('#saveBtn').title = 'Spielstand online speichern';
+    $('#fileBtn').hidden = false;
+    $('#helpSave').textContent = 'Klicke am Ende der Lektion auf «Speichern». Für ein anderes Gerät kannst du mit «Als Datei» eine Datei mitnehmen.';
+  }
   $('#logoutBtn').onclick = async () => { await saveLocal(); location.reload(); };
   window.addEventListener('beforeunload', () => { if (S) saveLocal(); });
 }

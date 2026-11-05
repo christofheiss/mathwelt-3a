@@ -18,6 +18,9 @@ fs.writeFileSync(new URL('../js/config.js', import.meta.url), `// MathWelt 3A �
 // Enthält KEINE Geheimnisse: nur den öffentlichen Schlüssel der Lehrperson und Prüfwerte (Hashes) der gültigen Codes.
 export const CONFIG = {
   className: '3A',
+  // Online-Speichern: Adresse des Cloudflare Workers (leer = nur Datei-Download) und privates Daten-Repo
+  saveUrl: '',
+  dataRepo: '',
   teacherPublicKey: ${JSON.stringify(pub)},
   tokenHashes: [
 ${hashes.join('\n')}

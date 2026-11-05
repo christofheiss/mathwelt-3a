@@ -37,21 +37,70 @@ $('#unlockForm').onsubmit = async (e) => {
 $('#lockBtn').onclick = () => location.reload();
 
 // ---------- Spielstände laden ----------
+async function addSave(text) {
+  const data = JSON.parse(text);
+  if (data.app !== 'mathwelt-3a') throw new Error('keine MathWelt-Datei');
+  const st = await K.openSaveAsTeacher(data, priv);
+  const prev = students.get(st.id);
+  if (!prev || (st.lastSave || 0) >= (prev.lastSave || 0)) students.set(st.id, st);
+}
+function showLoadResult(ok, errs) {
+  $('#status').innerHTML = `${ok} Spielstand/-stände geladen, ${students.size} Schüler/innen in der Übersicht.` + (errs.length ? `<br><span class="error">${errs.map(esc).join('<br>')}</span>` : '');
+  render();
+}
 $('#saves').onchange = async (e) => {
   let ok = 0; const errs = [];
   for (const f of e.target.files) {
-    try {
-      const data = JSON.parse(await f.text());
-      if (data.app !== 'mathwelt-3a') throw new Error('keine MathWelt-Datei');
-      const st = await K.openSaveAsTeacher(data, priv);
-      const prev = students.get(st.id);
-      if (!prev || (st.lastSave || 0) >= (prev.lastSave || 0)) students.set(st.id, st);
-      ok++;
-    } catch (er) { errs.push(`${f.name}: ${er.message || 'nicht lesbar'}`); }
+    try { await addSave(await f.text()); ok++; }
+    catch (er) { errs.push(`${f.name}: ${er.message || 'nicht lesbar'}`); }
   }
-  $('#status').innerHTML = `${ok} Datei(en) geladen, ${students.size} Schüler/innen in der Übersicht.` + (errs.length ? `<br><span class="error">${errs.map(esc).join('<br>')}</span>` : '');
   e.target.value = '';
-  render();
+  showLoadResult(ok, errs);
+};
+
+// ---------- Online-Spielstände (privates GitHub-Repo, Lesezugriff liegt verschlüsselt im Dongle) ----------
+async function github(path, readToken, accept) {
+  const res = await fetch(`https://api.github.com/repos/${dongle.cloud.repo}/contents/${path}`, {
+    headers: { Authorization: `Bearer ${readToken}`, Accept: accept, 'X-GitHub-Api-Version': '2022-11-28' }, cache: 'no-store',
+  });
+  if (res.status === 404 && path === 'saves') return null;   // noch nichts gespeichert
+  if (res.status === 401 || res.status === 403) throw new Error('GitHub lehnt den Lesezugriff ab. Ist der Schlüssel abgelaufen?');
+  if (res.status === 404) throw new Error('Das Daten-Repo wurde nicht gefunden. Hat der Schlüssel Zugriff darauf?');
+  if (!res.ok) throw new Error(`GitHub antwortet mit Fehler ${res.status}.`);
+  return res;
+}
+async function loadOnline() {
+  const btn = $('#cloudBtn'); btn.disabled = true; $('#status').textContent = 'Lade Online-Spielstände …';
+  try {
+    const list = await github('saves', dongle.cloud.token, 'application/vnd.github+json');
+    const files = list ? (await list.json()).filter(f => f.type === 'file' && f.name.endsWith('.mw3a')) : [];
+    let ok = 0; const errs = [];
+    const results = await Promise.allSettled(files.map(async f => {
+      const res = await github('saves/' + encodeURIComponent(f.name), dongle.cloud.token, 'application/vnd.github.raw+json');
+      await addSave(await res.text());
+    }));
+    results.forEach((r, i) => { if (r.status === 'fulfilled') ok++; else errs.push(`${files[i].name}: ${r.reason?.message || 'nicht lesbar'}`); });
+    showLoadResult(ok, errs);
+  } catch (er) {
+    $('#status').innerHTML = `<span class="error">${esc(er.message || 'Laden nicht möglich.')}</span>`;
+  } finally { btn.disabled = false; }
+}
+$('#cloudBtn').onclick = () => {
+  if (dongle.cloud?.token && dongle.cloud?.repo) return loadOnline();
+  $('#clRepo').value = dongle.cloud?.repo || CONFIG.dataRepo || ''; $('#clToken').value = ''; $('#clError').textContent = '';
+  $('#cloudDlg').hidden = false;
+};
+$('#clClose').onclick = () => { $('#cloudDlg').hidden = true; };
+$('#clSave').onclick = async () => {
+  const repo = $('#clRepo').value.trim(), tok = $('#clToken').value.trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { $('#clError').textContent = 'Das Repo braucht die Form name/repo.'; return; }
+  if (!tok) { $('#clError').textContent = 'Bitte den Lese-Schlüssel eingeben.'; return; }
+  const before = dongle.cloud; dongle.cloud = { repo, token: tok };
+  try { await github('saves', tok, 'application/vnd.github+json'); }
+  catch (er) { dongle.cloud = before; $('#clError').textContent = er.message; return; }
+  $('#clToken').value = ''; $('#cloudDlg').hidden = true;
+  await loadOnline();
+  $('#status').insertAdjacentHTML('beforeend', '<br><b>Wichtig:</b> Speichere jetzt den Dongle neu («Dongle speichern»), sonst musst du den Lese-Schlüssel beim nächsten Mal wieder eingeben.');
 };
 
 // ---------- Auswertung ----------

@@ -22,7 +22,7 @@
       <button class="primary" type="submit" id="unlockBtn">Entsperren</button>
       <p id="lockError" class="error" role="alert"></p>
     </form>
-    <p class="small">Die Spielstände werden nur in diesem Browserfenster entschlüsselt. Es wird nichts hochgeladen.</p>
+    <p class="small">Die Spielstände werden nur in diesem Browserfenster entschlüsselt. Die Masterview lädt nichts hoch.</p>
   </div>
 </section>
 
@@ -30,6 +30,7 @@
   <header class="top">
     <h1>Masterview MathWelt 3A</h1>
     <div class="row">
+      <button id="cloudBtn" class="primary">Online-Spielstände laden</button>
       <label class="filebtn">Spielstände laden (.mw3a)<input id="saves" type="file" accept=".mw3a,application/json" multiple></label>
       <button id="csvBtn">CSV exportieren</button>
       <button id="tokensBtn">Neue Tokens</button>
@@ -37,7 +38,7 @@
       <button id="lockBtn">Sperren</button>
     </div>
   </header>
-  <p id="status" class="small">Noch keine Spielstände geladen. Wähle die abgegebenen Dateien aus (mehrere gleichzeitig möglich).</p>
+  <p id="status" class="small">Noch keine Spielstände geladen. Lade die Online-Spielstände oder wähle abgegebene Dateien aus (mehrere gleichzeitig möglich).</p>
 
   <section class="sum" id="classSummary"></section>
   <section>
@@ -53,6 +54,16 @@
       <p>Erzeugt neue Zugangscodes. Danach müssen die angezeigten Prüfwerte in <code>js/config.js</code> bei <code>tokenHashes</code> ergänzt und auf GitHub hochgeladen werden.</p>
       <div class="row"><label>IDs (durch Komma getrennt) <input id="tokIds" type="text" value="3A19, 3A20"></label><button class="primary" id="tokMake">Erzeugen</button></div>
       <div id="tokOut"></div>
+    </div>
+  </div>
+  <div id="cloudDlg" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2>Online-Spielstände einrichten</h2><button class="x" id="clClose">Schliessen</button></header>
+      <p>Einmalig nötig: Der Lese-Schlüssel für das private Daten-Repo wird nur verschlüsselt im Dongle gespeichert.</p>
+      <label>Daten-Repo <input id="clRepo" type="text" spellcheck="false" autocomplete="off"></label>
+      <label>Lese-Schlüssel (GitHub Token) <input id="clToken" type="password" autocomplete="off"></label>
+      <p id="clError" class="error"></p>
+      <div class="actions"><button class="primary" id="clSave">Prüfen und laden</button></div>
     </div>
   </div>
   <div id="dongleDlg" class="overlay" hidden>

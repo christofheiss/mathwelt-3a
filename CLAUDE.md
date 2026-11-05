@@ -22,14 +22,15 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 | `js/tasks.js` | `BUILDINGS`: 10 Gebäude mit `gen(stage)` für Niveau 1–3 → `{q (HTML), kind: 'num'|'mc'|'multi', answer|options|parts, hint, sol, tol?, unit?}`; `checkPart`, `parseAnswer` (Komma, Brüche, «x =», %), Canvas-Diagramme (Alterspyramide, Liniendiagramm), Waage-SVG |
 | `js/game.js` | Spiellogik: Login (Token-Hash in `CONFIG.tokenHashes`), Spielstand `S`, Speichern lokal (localStorage, verschlüsselt) + Datei-Download `.mw3a`, Niveau-Empfehlung, Coins, Level-Turm, Karte mit Schnellreise, Eingaben |
 | `js/crypto.js` | Web Crypto: Token-Format/Normalisierung, `tokenHash`, `studentKey` (PBKDF2), `sealSave`/`openSaveAsStudent`/`openSaveAsTeacher`, `makeDongle`/`openDongle`, RSA-Schlüssel |
-| `js/config.js` | **öffentlich**: RSA-Public-Key der Lehrperson + SHA-256-Hashes der gültigen Codes |
+| `js/config.js` | **öffentlich**: RSA-Public-Key der Lehrperson + SHA-256-Hashes der gültigen Codes + `saveUrl` (Worker) und `dataRepo` |
+| `worker/worker.js`, `worker/README.md` | Cloudflare Worker fürs Online-Speichern: prüft den Code, schreibt nach `saves/<ID>.mw3a` im privaten Repo `mathwelt-3a-daten`; Einrichtung im README |
 | `lehrer.html`, `css/teacher.css`, `js/teacher.js` | Masterview: Dongle + Passwort entsperren, `.mw3a` laden (neuester Stand pro ID), Klassen-Kacheln pro LZ, Tabelle pro ID × Gebäude, Detail mit Aktivitäten-Log, CSV, neue Tokens, Namen nur im Dongle, Dongle neu speichern |
 
 ### Sicherheitsmodell
 - Token z. B. `3A07-K7QM-X2PD-9HTR`: die ersten 4 Zeichen = ID. Gültigkeit über Hash in `config.js`.
 - Spielstand-Datei: Inhalt AES-GCM mit Zufallsschlüssel; Schlüssel einmal mit PBKDF2(Token) (SuS) und einmal RSA-OAEP mit Public Key der Lehrperson verschlüsselt.
-- Dongle (`*.mw3akey`): privater RSA-Schlüssel + Token-Liste + Namen, AES-GCM mit PBKDF2(Passwort), 150 000 Iterationen.
-- Bekannte Grenze: Lösungen werden im Client erzeugt/geprüft (Spiel = Üben, nicht Beurteilen). Kein Live-Stand ohne Server.
+- Dongle (`*.mw3akey`): privater RSA-Schlüssel + Token-Liste + Namen + Lese-Schlüssel fürs Daten-Repo (`cloud`), AES-GCM mit PBKDF2(Passwort), 150 000 Iterationen.
+- Bekannte Grenze: Lösungen werden im Client erzeugt/geprüft (Spiel = Üben, nicht Beurteilen). Der GitHub-Schreibschlüssel liegt nur als Secret im Worker, nie im Client.
 
 ### Spielregeln
 - Niveaus: ★ Grund 5 Coins, ★★ Standard 10, ★★★ Erweiterung 20 (frei nach 3 richtigen Standard-Aufgaben). Lösungshilfe oder 2. Versuch = halbe Coins. Max. 2 Versuche.
@@ -62,4 +63,4 @@ ES-Module brauchen einen Webserver (nicht per file:// öffnen).
 - QR-Inhalt könnte die Spiel-URL mit `#t=CODE` enthalten (Login liest das schon aus).
 - `TITLES` und Level-Logik in ein gemeinsames Modul auslagern.
 - Mehr Aufgabentypen (z. B. Ungleichungen S. 33 als Bonus-Gebäude), Sound, Erfolge/Abzeichen, Klassenrangliste in der Masterview.
-- Optional Online-Datenbank für Live-Daten (Datenschutz mit Schule klären).
+- Online-Speichern: Worker einrichten (`worker/README.md`), Datenschutz mit Schule klären.

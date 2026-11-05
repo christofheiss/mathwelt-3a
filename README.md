@@ -29,10 +29,10 @@ Jedes Gebäude hat drei Niveaus: ★ Grundanspruch (5 Coins), ★★ Standard (1
 ## Datenschutz und Sicherheit
 
 - Die Schülerinnen und Schüler melden sich nur mit einer **ID** (z. B. 3A07) und einem persönlichen Code an. Namen kommen im Spiel nicht vor.
-- Es gibt **keinen Server**. Der Spielstand wird verschlüsselt im Browser gespeichert und als verschlüsselte Datei (`.mw3a`) heruntergeladen und abgegeben.
+- Der Spielstand wird verschlüsselt im Browser gespeichert. Beim Klick auf «Speichern» geht er verschlüsselt über einen kleinen Cloudflare Worker in ein privates GitHub-Repo (Einrichtung: `worker/README.md`). Ohne Worker oder bei einem Fehler wird er als verschlüsselte Datei (`.mw3a`) heruntergeladen und abgegeben.
 - Jede Datei ist zweimal verschlüsselt lesbar: mit dem Code der Schülerin / des Schülers (zum Weiterspielen) und mit dem öffentlichen Schlüssel der Lehrperson. Nur wer die **Dongle-Datei und das Passwort** hat, kann die Daten in der Masterview öffnen.
 - In diesem Repository liegen nur der öffentliche Schlüssel und Prüfwerte (Hashes) der Codes (`js/config.js`). Die Dongle-Datei und die Codes dürfen **nicht** hochgeladen werden.
 
 ## Technik
 
-Reines HTML, CSS und JavaScript ohne externe Bibliotheken (eigene WebGL-Blockgrafik, Web Crypto API). Läuft in aktuellen Browsern (Chrome, Edge, Firefox, Safari) auf Laptops mit Tastatur und Touchpad.
+Das Spiel ist reines HTML, CSS und JavaScript ohne externe Bibliotheken (eigene WebGL-Blockgrafik, Web Crypto API). Läuft in aktuellen Browsern (Chrome, Edge, Firefox, Safari) auf Laptops mit Tastatur und Touchpad.
