@@ -22,6 +22,8 @@ export const CONFIG = {
   saveUrl: '',
   dataRepo: '',
   teacherPublicKey: ${JSON.stringify(pub)},
+  // Freigabe, solange der Worker nichts anderes meldet (gl = Gleichungen, aj = Alt und Jung)
+  worlds: { gl: true, aj: false },
   tokenHashes: [
 ${hashes.join('\n')}
   ]

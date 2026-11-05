@@ -7,6 +7,8 @@ Die Schülerinnen und Schüler laufen durch ein Dorf, betreten Gebäude und lös
 - **Spiel:** `index.html`
 - **Masterview für die Lehrperson:** `lehrer.html` (nur mit Dongle-Datei und Passwort)
 
+Es gibt zwei Welten: **Gleichungen** (LU 11) und **Alt und Jung** (LU 10). Die Lehrperson schaltet sie in der Masterview frei. Coins und Level gelten in beiden Welten.
+
 ## Gebäude
 
 | LU | Gebäude | Lernziel | mathbuch 3 |

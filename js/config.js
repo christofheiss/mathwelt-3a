@@ -6,6 +6,8 @@ export const CONFIG = {
   saveUrl: 'https://mathwelt-3a-save.c-heiss.workers.dev',
   dataRepo: 'christofheiss/mathwelt-3a-daten',
   teacherPublicKey: {"kty":"RSA","n":"qy7MUmhJDluk6s2h2LOk5xXxgSolnBO47DQoCyQylWuHJJJ6qXjgoacsIyjUD96pe6RKYQW9_QOStP0tPYmtOtZ4Q37_PdABJ07O86KwFkvXSz8s_yrAUf_3X5KcVbisKiNhBp-2OGRUy9iUbZgV_ZEoYqCsNszjSwIfd6ACT2zsCG9xViEn7YiXBvEbCE_LNNkUnHeSgkEaQGw-DL9ze4AtHCREl7LiBqNWp0_wDLxgj0HE-Wk1RpEnAOjG64RmQGuDJTjCexduRj3IsyEzyCY5efP58oUclf0KsKNlMHehqjBHyFNGdxE2ggyfQYVYsIjZcLAgd-Y6Ftyjn0b_vw","e":"AQAB","alg":"RSA-OAEP-256","ext":true,"key_ops":["encrypt"]},
+  // Freigabe, solange der Worker nichts anderes meldet (gl = Gleichungen, aj = Alt und Jung)
+  worlds: { gl: true, aj: false },
   tokenHashes: [
     '3708074d7187f9ff0ed65d782d169995d2bccfdf4af7e0747174c041b8adb58d', // 3A01
     '1130071ad3e681db844edb5ba6c5ebc8e40b13edbd3e8b7b32e04437bb778133', // 3A02

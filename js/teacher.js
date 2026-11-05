@@ -1,5 +1,5 @@
 // MathWelt 3A – Masterview für die Lehrperson
-import { BUILDINGS, STAGES } from './tasks.js';
+import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
 
@@ -30,7 +30,7 @@ $('#unlockForm').onsubmit = async (e) => {
     priv = await K.importPrivate(content.privateKey);
     dongle = content; dongle.names = dongle.names || {}; dongle.tokens = dongle.tokens || [];
     $('#pw').value = ''; $('#lock').hidden = true; $('#app').hidden = false;
-    render();
+    render(); loadWorlds();
   } catch (er) { $('#lockError').textContent = er.message; }
   finally { $('#unlockBtn').disabled = false; $('#unlockBtn').textContent = 'Entsperren'; }
 };
@@ -102,6 +102,42 @@ $('#clSave').onclick = async () => {
   await loadOnline();
   $('#status').insertAdjacentHTML('beforeend', '<br><b>Wichtig:</b> Speichere jetzt den Dongle neu («Dongle speichern»), sonst musst du den Lese-Schlüssel beim nächsten Mal wieder eingeben.');
 };
+
+// ---------- Welten freischalten ----------
+let worldState = { ...CONFIG.worlds };
+function renderWorldToggles(busy = false) {
+  $('#worldToggles').innerHTML = Object.values(WORLDS).map(w => {
+    const on = !!worldState[w.id];
+    return `<div class="worldtoggle"><span><b>${esc(w.name)}</b> · ${esc('LU ' + w.lu)}</span>
+      <span class="st ${on ? 'on' : 'off'}">${on ? 'offen' : 'gesperrt'}</span>
+      <button data-w="${w.id}" ${on ? '' : 'class="primary"'} ${busy || !CONFIG.saveUrl ? 'disabled' : ''}>${on ? 'Sperren' : 'Freischalten'}</button></div>`;
+  }).join('');
+  $('#worldToggles').querySelectorAll('button').forEach(b => b.onclick = () => setWorld(b.dataset.w, !worldState[b.dataset.w]));
+}
+async function workerJson(path, opts) {
+  let res;
+  try { res = await fetch(new URL(path, CONFIG.saveUrl), { cache: 'no-store', ...opts }); }
+  catch { throw new Error('Der Worker ist nicht erreichbar. Prüfe die Internetverbindung.'); }
+  if (!res.ok) throw new Error(`Der Worker antwortet mit Fehler ${res.status}. Ist der neuste Worker-Code bei Cloudflare eingesetzt?`);
+  return res.json();
+}
+async function loadWorlds() {
+  renderWorldToggles();
+  if (!CONFIG.saveUrl) { $('#worldMsg').textContent = 'Ohne Worker gilt die Einstellung worlds in js/config.js.'; return; }
+  try { worldState = { ...CONFIG.worlds, ...(await workerJson('/worlds')).worlds }; renderWorldToggles(); $('#worldMsg').textContent = ''; }
+  catch (er) { $('#worldMsg').innerHTML = `<span class="error">${esc(er.message)}</span>`; }
+}
+async function setWorld(id, on) {
+  renderWorldToggles(true); $('#worldMsg').textContent = 'Speichere …';
+  try {
+    const { challenge, exp, ticket } = await workerJson('/worlds/challenge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const answer = await K.openChallenge(challenge, priv);
+    const res = await workerJson('/worlds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer, exp, ticket, worlds: { ...worldState, [id]: on } }) });
+    worldState = { ...CONFIG.worlds, ...res.worlds };
+    $('#worldMsg').textContent = `«${WORLDS[id].name}» ist jetzt ${on ? 'offen' : 'gesperrt'}. Die Klasse sieht es innert etwa einer Minute in der Weltauswahl.`;
+  } catch (er) { $('#worldMsg').innerHTML = `<span class="error">${esc(er.message || 'Speichern nicht möglich.')}</span>`; }
+  renderWorldToggles();
+}
 
 // ---------- Auswertung ----------
 function summary(st) {

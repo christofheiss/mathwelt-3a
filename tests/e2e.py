@@ -17,9 +17,10 @@ async def main():
         await pg.goto(URL + 'index.html')
         await pg.fill('#tokenInput', T); await pg.click('#loginBtn'); await pg.wait_for_timeout(1500)
         if await pg.is_visible('#newGameBtn'): await pg.click('#newGameBtn')
-        await pg.wait_for_timeout(1000)
+        await pg.wait_for_timeout(500)
+        await pg.click('#worldCards button[data-w="gl"]'); await pg.wait_for_timeout(1000)
         if await pg.is_visible('#helpClose'): await pg.click('#helpClose')
-        for bid in ['waage', 'pyramide', 'level']:
+        for bid in ['waage', 'umkehr', 'level']:
             await pg.keyboard.press('KeyM'); await pg.wait_for_timeout(300)
             await pg.click(f'#mapLegend button[data-id="{bid}"]')
             await pg.keyboard.down('KeyW'); await pg.wait_for_timeout(1500); await pg.keyboard.up('KeyW')

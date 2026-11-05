@@ -556,3 +556,9 @@ export function checkPart(part, value) {
   const v = parseAnswer(value); if (Number.isNaN(v)) return false;
   return Math.abs(v - part.answer) <= (part.tol ?? 1e-6);
 }
+
+// Die zwei Welten: je eine Lernumgebung. Freigabe: siehe CONFIG.worlds und Masterview.
+export const WORLDS = {
+  gl: { id: 'gl', name: 'Gleichungen', lu: 11, sub: 'LU 11 · Gleichungen lösen', sky: [0.55, 0.75, 0.95] },
+  aj: { id: 'aj', name: 'Alt und Jung', lu: 10, sub: 'LU 10 · Alterspyramiden, Prozente, Graphen', sky: [0.96, 0.8, 0.62] },
+};

@@ -18,7 +18,7 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 |---|---|
 | `index.html`, `css/style.css` | Spiel: Login, Willkommen, HUD, Aufgaben-Panel, Level-Turm, Karte, Hilfe |
 | `js/engine.js` | Eigene WebGL-Voxel-Engine: Blocktypen `B`, prozeduraler Texturatlas, `World`, `Renderer` (ein Mesh, Neuaufbau via `rebuild()`), `Player` (Kollision, Schwerkraft, Stufen hochsteigen) |
-| `js/world.js` | Dorf 72×26×72: Gebäude-Standorte `SPOTS`, `buildWorld(level)`, `setFamePillar` (goldene Säule = Level), `buildingAt` |
+| `js/world.js` | Zwei Dörfer 72×26×72 (`gl` LU 11, `aj` LU 10, Definition `WORLDS` in tasks.js): Gebäude-Standorte `SPOTS`, `buildWorld(level, worldId)`, `setFamePillar` (goldene Säule = Level), `buildingAt` |
 | `js/tasks.js` | `BUILDINGS`: 10 Gebäude mit `gen(stage)` für Niveau 1–3 → `{q (HTML), kind: 'num'|'mc'|'multi', answer|options|parts, hint, sol, tol?, unit?}`; `checkPart`, `parseAnswer` (Komma, Brüche, «x =», %), Canvas-Diagramme (Alterspyramide, Liniendiagramm), Waage-SVG |
 | `js/game.js` | Spiellogik: Login (Token-Hash in `CONFIG.tokenHashes`), Spielstand `S`, Speichern lokal (localStorage, verschlüsselt) + Datei-Download `.mw3a`, Niveau-Empfehlung, Coins, Level-Turm, Karte mit Schnellreise, Eingaben |
 | `js/crypto.js` | Web Crypto: Token-Format/Normalisierung, `tokenHash`, `studentKey` (PBKDF2), `sealSave`/`openSaveAsStudent`/`openSaveAsTeacher`, `makeDongle`/`openDongle`, RSA-Schlüssel |
@@ -31,6 +31,11 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 - Spielstand-Datei: Inhalt AES-GCM mit Zufallsschlüssel; Schlüssel einmal mit PBKDF2(Token) (SuS) und einmal RSA-OAEP mit Public Key der Lehrperson verschlüsselt.
 - Dongle (`*.mw3akey`): privater RSA-Schlüssel + Token-Liste + Namen + Lese-Schlüssel fürs Daten-Repo (`cloud`), AES-GCM mit PBKDF2(Passwort), 150 000 Iterationen.
 - Bekannte Grenze: Lösungen werden im Client erzeugt/geprüft (Spiel = Üben, nicht Beurteilen). Der GitHub-Schreibschlüssel liegt nur als Secret im Worker, nie im Client.
+
+### Welten freischalten
+- Freigabe liegt als `worlds.json` im Daten-Repo; `CONFIG.worlds` ist der Standard (Gleichungen offen, Alt und Jung gesperrt), das Spiel merkt sich den letzten Stand lokal.
+- Masterview ändert sie über den Worker: Der Worker verschlüsselt eine Zufallszahl mit dem Public Key, nur der Dongle kann sie lösen. Kein zusätzliches Secret nötig.
+- Sperre wird im Browser durchgesetzt, ist also ein Unterrichtsablauf und kein Schutz gegen versierte SuS.
 
 ### Spielregeln
 - Niveaus: ★ Grund 5 Coins, ★★ Standard 10, ★★★ Erweiterung 20 (frei nach 3 richtigen Standard-Aufgaben). Lösungshilfe oder 2. Versuch = halbe Coins. Max. 2 Versuche.

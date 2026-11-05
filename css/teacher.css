@@ -28,3 +28,10 @@ td input.name { width: 9em; padding: 2px 4px; border: 1px solid #aaa; font: inhe
 .ok { color: var(--good); font-weight: 700; } .no { color: var(--bad); font-weight: 700; }
 .tokcard { border: 2px dashed #888; padding: 8px 12px; margin: 6px 0; font: 600 1.1rem var(--mono); background: #fff; }
 pre.hashes { background: #fff; border: 1px solid #aaa; padding: 8px; white-space: pre-wrap; word-break: break-all; font-size: .75rem; }
+
+/* Welten freischalten */
+#worldToggles { display: flex; flex-wrap: wrap; gap: 12px; }
+.worldtoggle { display: flex; align-items: center; gap: 12px; background: #fff; border: 3px solid #2a2a2a; padding: 8px 12px; }
+.worldtoggle .st { font-weight: 700; }
+.worldtoggle .st.on { color: #2e7d32; }
+.worldtoggle .st.off { color: #a5432f; }

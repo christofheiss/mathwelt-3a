@@ -1,7 +1,7 @@
 // MathWelt 3A – Spiellogik, Anmeldung, Speichern
 import { Renderer, Player, MAP_COLORS } from './engine.js';
 import { buildWorld, buildingAt, setFamePillar, G, SIZE, LEVEL_TOWER } from './world.js';
-import { BUILDINGS, STAGES, checkPart, fmt } from './tasks.js';
+import { BUILDINGS, STAGES, WORLDS, checkPart, fmt } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
 
@@ -21,13 +21,13 @@ const keys = {};
 function newState(id) {
   const stats = {};
   for (const b of BUILDINGS) stats[b.id] = { 1: { c: 0, w: 0 }, 2: { c: 0, w: 0 }, 3: { c: 0, w: 0 }, recent: [] };
-  return { app: 'mathwelt-3a', v: 1, id, created: Date.now(), lastSave: Date.now(), coins: 0, earned: 0, level: 1, hints: 0, stats, log: [], sessions: [], pos: null, unsavedSince: 0 };
+  return { app: 'mathwelt-3a', v: 1, id, created: Date.now(), lastSave: Date.now(), coins: 0, earned: 0, level: 1, hints: 0, stats, log: [], sessions: [], world: null, posBy: {}, unsavedSince: 0 };
 }
 function storageKey() { return 'mathwelt3a_' + S.id; }
 async function saveLocal() {
   if (!S) return;
   S.lastSave = Date.now();
-  if (player) S.pos = { x: player.x, y: player.y, z: player.z, yaw: player.yaw };
+  if (player && S.world) S.posBy[S.world] = { x: player.x, y: player.y, z: player.z, yaw: player.yaw };
   const ses = S.sessions[S.sessions.length - 1]; if (ses) ses.end = Date.now();
   try { localStorage.setItem(storageKey(), JSON.stringify(await K.sealSave(S, sKey, CONFIG.teacherPublicKey))); }
   catch (e) { console.warn('Lokales Speichern nicht möglich', e); }
@@ -89,6 +89,7 @@ async function tryLogin(raw) {
   } finally { $('#loginBtn').disabled = false; $('#loginBtn').textContent = 'Anmelden'; }
 }
 function migrate(st) {
+  st.posBy = st.posBy || {}; delete st.pos;   // alte Position passt nicht mehr zu den neuen Karten
   for (const b of BUILDINGS) if (!st.stats[b.id]) st.stats[b.id] = { 1: { c: 0, w: 0 }, 2: { c: 0, w: 0 }, 3: { c: 0, w: 0 }, recent: [] };
 }
 function showWelcome() {
@@ -120,15 +121,69 @@ async function scanQr() {
 
 // ---------- Spielstart ----------
 function startGame() {
-  $('#welcome').hidden = true; $('#game').hidden = false;
-  const built = buildWorld(S.level); worldData = built;
-  try { renderer = new Renderer($('#view'), built.world); }
+  $('#welcome').hidden = true;
+  showWorlds();
+}
+
+// ---------- Weltauswahl ----------
+const WORLDS_KEY = 'mathwelt3a_worlds';
+let openWorlds = { ...CONFIG.worlds }, worldsChecked = false, worldsTimer = null;
+try { Object.assign(openWorlds, JSON.parse(localStorage.getItem(WORLDS_KEY) || '{}')); } catch { }
+
+async function refreshWorlds() {
+  if (!CONFIG.saveUrl) { worldsChecked = true; return; }
+  try {
+    const res = await fetch(new URL('/worlds', CONFIG.saveUrl), { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const { worlds } = await res.json();
+    openWorlds = { ...CONFIG.worlds, ...worlds }; worldsChecked = true;
+    try { localStorage.setItem(WORLDS_KEY, JSON.stringify(openWorlds)); } catch { }
+  } catch (e) { console.warn('Freigabe der Welten nicht lesbar', e); worldsChecked = false; }
+}
+function renderWorlds() {
+  $('#worldCards').innerHTML = Object.values(WORLDS).map(w => {
+    const solved = BUILDINGS.filter(b => b.lu === w.lu).reduce((a, b) => a + [1, 2, 3].reduce((n, k) => n + S.stats[b.id][k].c, 0), 0);
+    const open = !!openWorlds[w.id];
+    return `<div class="worldcard ${open ? 'open' : 'locked'}"><h3>${esc(w.name)}</h3><p>${esc(w.sub)}</p>
+      <p class="small">${solved} Aufgaben richtig gelöst</p>
+      ${open ? `<button class="primary" data-w="${w.id}">${S.world === w.id && player ? 'Weiterspielen' : 'Betreten'}</button>` : '<p class="lockmsg">Noch gesperrt. Deine Lehrperson schaltet diese Welt frei.</p>'}</div>`;
+  }).join('');
+  $('#worldCards').querySelectorAll('button[data-w]').forEach(btn => btn.onclick = () => enterWorld(btn.dataset.w));
+  $('#worldsNote').textContent = worldsChecked ? '' : 'Die aktuelle Freigabe konnte nicht geprüft werden. Es wird der letzte bekannte Stand angezeigt.';
+}
+async function showWorlds() {
+  paused = true; document.exitPointerLock?.();
+  for (const k in keys) keys[k] = false;
+  $('#worlds').hidden = false; $('#worldsBack').hidden = !player;
+  renderWorlds();
+  const poll = async () => { await refreshWorlds(); if (!$('#worlds').hidden) renderWorlds(); };
+  clearInterval(worldsTimer); worldsTimer = setInterval(poll, 20000);
+  await poll();
+}
+function closeWorlds() { clearInterval(worldsTimer); $('#worlds').hidden = true; }
+
+let gameRunning = false;
+async function enterWorld(id) {
+  await saveLocal();
+  closeWorlds();
+  S.world = id; $('#game').hidden = false;
+  const built = buildWorld(S.level, id); worldData = built;
+  try {
+    if (renderer) { renderer.world = built.world; renderer.rebuild(); }
+    else renderer = new Renderer($('#view'), built.world);
+    renderer.sky = WORLDS[id].sky;
+  }
   catch (e) { $('#game').innerHTML = `<div class="fatal">Die 3D-Welt kann nicht angezeigt werden: ${esc(e.message)}<br>Bitte verwende einen aktuellen Browser (Chrome, Edge, Firefox oder Safari).</div>`; return; }
-  const p = S.pos || { x: 36.5, y: G + 1, z: 43.5, yaw: 0 };
+  const p = S.posBy[id] || { x: 36.5, y: G + 1, z: 43.5, yaw: 0 };
   player = new Player(built.world, p.x, p.y + 0.2, p.z); player.yaw = p.yaw || 0;
-  makeLabels(); updateHud(); paused = false;
-  requestAnimationFrame(loop);
-  setInterval(() => { if (!paused) saveLocal(); }, 30000);
+  inside = null; showPrompt(null);
+  makeLabels(); updateHud(); paused = false; await saveLocal();
+  toast(`Welt: ${WORLDS[id].name}`);
+  if (!gameRunning) {
+    gameRunning = true;
+    requestAnimationFrame(loop);
+    setInterval(() => { if (!paused) saveLocal(); }, 30000);
+  }
   if (!localStorage.getItem('mathwelt3a_help_seen')) { showHelp(); try { localStorage.setItem('mathwelt3a_help_seen', '1'); } catch { } }
 }
 
@@ -317,7 +372,7 @@ async function levelUp() {
 }
 
 // ---------- Karte ----------
-const MAP_ORDER = ['level', ...BUILDINGS.map(b => b.id)];
+const mapOrder = () => ['level', ...BUILDINGS.filter(b => worldData.meta[b.id]).map(b => b.id)];
 function showMap() {
   paused = true; document.exitPointerLock?.();
   const cv = $('#mapCanvas'), g = cv.getContext('2d'), sc = cv.width / SIZE, w = worldData.world;
@@ -325,7 +380,7 @@ function showMap() {
     const y = w.topY(x, z); g.fillStyle = MAP_COLORS[w.get(x, y, z)] || '#888'; g.fillRect(x * sc, z * sc, sc, sc);
   }
   g.font = 'bold 14px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  MAP_ORDER.forEach((id, i) => {
+  mapOrder().forEach((id, i) => {
     const m = worldData.meta[id], X = (m.cx + 0.5) * sc, Z = (m.cz + 0.5) * sc;
     g.fillStyle = id === 'level' ? '#e8b931' : m.b.lu === 11 ? '#a5432f' : '#6b5a2a';
     g.beginPath(); g.arc(X, Z, 13, 0, 7); g.fill(); g.lineWidth = 2; g.strokeStyle = '#000'; g.stroke();
@@ -333,7 +388,7 @@ function showMap() {
   });
   g.save(); g.translate(player.x * sc, player.z * sc); g.rotate(player.yaw);
   g.fillStyle = '#ff2'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(-7, 8); g.closePath(); g.fill(); g.stroke(); g.restore();
-  $('#mapLegend').innerHTML = MAP_ORDER.map((id, i) => {
+  $('#mapLegend').innerHTML = mapOrder().map((id, i) => {
     const m = worldData.meta[id];
     const name = id === 'level' ? 'Level-Turm' : m.b.name;
     return `<li><button data-id="${id}"><span class="no ${id === 'level' ? 'lv' : 'lu' + m.b.lu}">${id === 'level' ? 'L' : i}</span>${esc(name)}${id === 'level' ? '' : `<small>LU ${m.b.lu} · ${stageProgress(id)}</small>`}</button></li>`;
@@ -361,7 +416,7 @@ function showHelp() { paused = true; document.exitPointerLock?.(); $('#help').hi
 function overlayOpen() { return !$('#panel').hidden || !$('#levelPanel').hidden || !$('#map').hidden || !$('#help').hidden; }
 function setupInput() {
   window.addEventListener('keydown', (e) => {
-    if (!$('#login').hidden || !$('#welcome').hidden) return;
+    if (!$('#login').hidden || !$('#welcome').hidden || !$('#worlds').hidden) return;
     const typing = e.target.tagName === 'INPUT';
     if (e.code === 'Escape') { if (overlayOpen()) { $('#map').hidden = true; $('#help').hidden = true; closePanel(); } return; }
     if (!$('#panel').hidden) {
@@ -394,6 +449,8 @@ function setupInput() {
   $('#helpBtn').onclick = showHelp; $('#helpClose').onclick = () => { $('#help').hidden = true; paused = false; };
   $('#saveBtn').onclick = saveOnline;
   $('#fileBtn').onclick = downloadSave;
+  $('#worldsBtn').onclick = showWorlds;
+  $('#worldsBack').onclick = () => { closeWorlds(); paused = false; };
   if (CONFIG.saveUrl) {
     $('#saveBtn').title = 'Spielstand online speichern';
     $('#fileBtn').hidden = false;

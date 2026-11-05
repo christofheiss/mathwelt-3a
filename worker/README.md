@@ -51,3 +51,7 @@ Mit der Karte 3A99 spielen und «Speichern» klicken. Es muss «Spielstand onlin
 - Klicken viele gleichzeitig, wiederholt der Worker den Schreibversuch. Klappt es trotzdem nicht, bekommt die Schülerin oder der Schüler die Datei als Download.
 - Läuft der Schreib-Schlüssel ab, schlägt das Hochladen fehl und das Spiel lädt nur noch Dateien herunter. Dann in Cloudflare einen neuen Schlüssel eintragen.
 - Neue Codes in `js/config.js` kennt der Worker automatisch, nach spätestens etwa 15 Minuten.
+
+## Worker-Code aktualisieren
+
+Bei Änderungen an `worker/worker.js`: bei Cloudflare den Worker öffnen → **Edit code** → alles durch den neuen Code ersetzen → **Deploy**. Die Variablen und das Secret bleiben erhalten. Die Freischaltung der Welten braucht keine zusätzliche Einstellung.

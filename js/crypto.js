@@ -66,6 +66,11 @@ export async function openSaveAsTeacher(file, privKey) {
   return JSON.parse(dec.decode(await aesDecrypt(k, file.body)));
 }
 
+// Beweis gegenüber dem Worker, dass die Lehrperson den privaten Schlüssel hat
+export async function openChallenge(challenge, privKey) {
+  return b64.from(await S.decrypt({ name: 'RSA-OAEP' }, privKey, b64.to(challenge)));
+}
+
 // ---------- Lehrer-Dongle ----------
 export async function makeDongle(content, password) {
   const salt = randomBytes(16);

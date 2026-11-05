@@ -118,3 +118,14 @@ table.keys td { padding: 4px 8px; vertical-align: top; }
 #mapLegend .no.lu11 { background: #a5432f; } #mapLegend .no.lu10 { background: #6b5a2a; } #mapLegend .no.lv { background: var(--gold); color: #000; }
 .answer input[type=text] { width: 13em; }
 @media (max-width: 800px) { .mapwrap { grid-template-columns: 1fr; } }
+
+/* Weltauswahl */
+#worlds { z-index: 60; }
+.card.wide { max-width: 760px; width: 100%; }
+#worldCards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 14px 0; }
+.worldcard { border: 3px solid #2a2a2a; padding: 14px 16px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+.worldcard h3 { margin: 0; font: 800 1.25rem var(--mono); }
+.worldcard p { margin: 0; }
+.worldcard button { margin-top: auto; }
+.worldcard.locked { background: #e3dfd3; color: #555; }
+.lockmsg { margin-top: auto !important; font-weight: 600; }

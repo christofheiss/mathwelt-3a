@@ -1,6 +1,6 @@
 // MathWelt 3A – Aufbau der Blockwelt
 import { World, B } from './engine.js';
-import { BUILDINGS } from './tasks.js';
+import { BUILDINGS, WORLDS } from './tasks.js';
 
 export const SIZE = 72, HEIGHT = 26, G = 4; // Bodenhöhe: Gras auf y = G
 
@@ -9,9 +9,11 @@ const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
 // Gebäude-Standorte: Mittelpunkt (x,z), Tür nach Norden (N) oder Süden (S)
 const SPOTS = {
-  waage: [27, 27, 'S'], umkehr: [17, 27, 'S'], probe: [7, 27, 'S'],
-  klammer: [27, 46, 'N'], raetsel: [17, 46, 'N'], detektiv: [7, 46, 'N'],
-  pyramide: [46, 27, 'S'], prozent: [56, 27, 'S'], zeit: [46, 46, 'N'], fakten: [56, 46, 'N']
+  gl: {
+    waage: [17, 27, 'S'], umkehr: [27, 27, 'S'], probe: [46, 27, 'S'],
+    klammer: [27, 46, 'N'], raetsel: [46, 46, 'N'], detektiv: [56, 46, 'N'],
+  },
+  aj: { pyramide: [27, 27, 'S'], prozent: [46, 27, 'S'], zeit: [27, 46, 'N'], fakten: [46, 46, 'N'] },
 };
 export const PLAZA = { x: 36, z: 36 };
 export const LEVEL_TOWER = { id: 'level', name: 'Level-Turm', x: 36, z: 22, door: 'S' };
@@ -51,8 +53,8 @@ function tree(w, x, z) {
   w.fill(x, G + 1, z, x, G + h, z, B.LOG);
 }
 
-export function buildWorld(level = 1) {
-  seed = 12345;
+export function buildWorld(level = 1, worldId = 'gl') {
+  seed = worldId === 'aj' ? 54321 : 12345;
   const w = new World(SIZE, HEIGHT, SIZE);
   // Gelände
   for (let z = 0; z < SIZE; z++) for (let x = 0; x < SIZE; x++) {
@@ -65,15 +67,15 @@ export function buildWorld(level = 1) {
   w.fill(4, G, 35, SIZE - 5, G, 37, B.PATH);
   w.fill(35, G, 4, 37, G, SIZE - 5, B.PATH);
   // Platz
-  w.fill(32, G, 32, 40, G, 40, B.COBBLE);
+  w.fill(32, G, 32, 40, G, 40, worldId === 'aj' ? B.SANDSTONE : B.COBBLE);
   w.fill(33, G, 33, 39, G, 39, B.PATH);
   // Brunnen in der Mitte
   w.fill(34, G + 1, 34, 38, G + 1, 38, B.COBBLE); w.fill(35, G + 1, 35, 37, G + 1, 37, B.WATER);
 
   const meta = {};
   const accentOf = (name) => B[name] ?? B.WHITE;
-  for (const b of BUILDINGS) {
-    const [cx, cz, door] = SPOTS[b.id];
+  for (const b of BUILDINGS.filter(x => x.lu === WORLDS[worldId].lu)) {
+    const [cx, cz, door] = SPOTS[worldId][b.id];
     const wall = b.lu === 11 ? B.BRICK : B.SANDSTONE;
     const accent = b.color === 'BOOKS' ? B.DARKWOOD : accentOf(b.color);
     const r = building(w, cx, cz, door, wall, accent, b.lu === 11 ? B.DARKWOOD : B.PLANKS);
@@ -90,8 +92,8 @@ export function buildWorld(level = 1) {
   }
   // Ruhmes-Säule auf dem Platz: wächst mit dem Level
   setFamePillar(w, level);
-  // Teich bei LU 10
-  w.fill(60, G, 58, 66, G, 63, B.WATER); w.fill(61, G, 57, 65, G, 57, B.WATER);
+  // Teich in der Welt «Alt und Jung»
+  if (worldId === 'aj') { w.fill(60, G, 58, 66, G, 63, B.WATER); w.fill(61, G, 57, 65, G, 57, B.WATER); }
   // Bäume
   const busy = (x, z) => {
     if (Math.abs(x - 36) < 9 && Math.abs(z - 36) < 9) return true;
