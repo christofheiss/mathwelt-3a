@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MathWelt 3A App</title>
+<meta name="theme-color" content="#17594a">
+<link rel="manifest" href="app.webmanifest">
+<link rel="icon" type="image/png" href="icons/app-192.png">
+<link rel="apple-touch-icon" href="icons/app-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MathWelt 3A">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- Anmeldung: gleicher Code wie im Spiel -->
+<section id="login" class="gate">
+  <div class="gatecard">
+    <h1>MathWelt 3A</h1>
+    <p class="lead">Lern-App zu mathbuch 3, LU 11 und LU 10</p>
+    <form id="loginForm" autocomplete="off">
+      <label for="tokenInput">Dein persönlicher Code (steht auf deiner Karte unter dem QR-Code)</label>
+      <input id="tokenInput" type="text" placeholder="3A07-XXXX-XXXX-XXXX" spellcheck="false" autocapitalize="characters">
+      <button id="loginBtn" type="submit" class="primary">Anmelden</button>
+      <button id="scanBtn" type="button">QR-Code mit Kamera scannen</button>
+      <p id="loginError" class="error" role="alert"></p>
+    </form>
+    <div id="qrWrap" hidden><video id="qrVideo" playsinline muted></video><button id="qrCancel" type="button">Abbrechen</button></div>
+    <p class="small">Du lernst nur mit deiner ID, nicht mit deinem Namen. Dein Lernstand wird verschlüsselt gespeichert.</p>
+    <p class="small"><a href="index.html">Lieber im 3D-Spiel lernen?</a> Coins und Level gelten in beiden.</p>
+  </div>
+</section>
+
+<!-- Erstes Mal, kein Lernstand gefunden -->
+<section id="welcome" class="gate" hidden>
+  <div class="gatecard">
+    <h2>Willkommen, <span id="welcomeId"></span>!</h2>
+    <p>Für dich gibt es noch keinen gespeicherten Lernstand.</p>
+    <button id="newGameBtn" class="primary">Neu beginnen</button>
+    <label class="filebtn">Spielstand-Datei laden<input id="loadFile" type="file" accept=".mw3a,application/json"></label>
+    <p id="welcomeError" class="error" role="alert"></p>
+    <p class="small">Hast du eine Datei «MathWelt3A_…mw3a» aus dem Spiel? Dann lade sie hier.</p>
+  </div>
+</section>
+
+<!-- App -->
+<div id="shell" hidden>
+  <header class="top">
+    <a class="brand" href="#/themen">MathWelt 3A</a>
+    <nav aria-label="Hauptmenü">
+      <a href="#/themen" data-nav="themen">Themen</a>
+      <a href="#/level" data-nav="level">Level</a>
+      <a href="#/stand" data-nav="stand">Mein Stand</a>
+    </nav>
+    <div class="status">
+      <span class="coins" title="Deine Coins"><i class="coin"></i><b id="topCoins">0</b></span>
+      <button id="saveBtn" title="Lernstand online speichern">Speichern</button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+<div id="toast" role="status" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,44 +1,30 @@
 // MathWelt 3A – Spiellogik, Anmeldung, Speichern
 import { Renderer, Player, MAP_COLORS } from './engine.js';
 import { buildWorld, buildingAt, setFamePillar, G, SIZE, LEVEL_TOWER } from './world.js';
-import { BUILDINGS, STAGES, WORLDS, checkPart, fmt } from './tasks.js';
+import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
+import * as C from './core.js';
 
+const VIA = 'spiel';
+const { TITLES, levelCost, titleOf, stageProgress: progressOf } = C;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BYID = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
-
-export const TITLES = ['Neuling', 'Entdecker/in', 'Rechenlehrling', 'Gleichungsprofi', 'Datendetektiv/in', 'Baumeister/in', 'Mathe-Meister/in', 'Legende'];
-export const levelCost = (lvl) => 40 + 30 * (lvl - 1);
-export const titleOf = (lvl) => lvl <= TITLES.length ? TITLES[lvl - 1] : `Legende +${lvl - TITLES.length}`;
 
 let token = null, sKey = null, S = null;            // Token, Schlüssel, Spielstand
 let renderer, player, worldData, paused = true, current = null;
 const keys = {};
 
 // ---------- Spielstand ----------
-function newState(id) {
-  const stats = {};
-  for (const b of BUILDINGS) stats[b.id] = { 1: { c: 0, w: 0 }, 2: { c: 0, w: 0 }, 3: { c: 0, w: 0 }, recent: [] };
-  return { app: 'mathwelt-3a', v: 1, id, created: Date.now(), lastSave: Date.now(), coins: 0, earned: 0, level: 1, hints: 0, stats, log: [], sessions: [], world: null, posBy: {}, unsavedSince: 0 };
-}
-function storageKey() { return 'mathwelt3a_' + S.id; }
 async function saveLocal() {
   if (!S) return;
-  S.lastSave = Date.now();
   if (player && S.world) S.posBy[S.world] = { x: player.x, y: player.y, z: player.z, yaw: player.yaw };
-  const ses = S.sessions[S.sessions.length - 1]; if (ses) ses.end = Date.now();
-  try { localStorage.setItem(storageKey(), JSON.stringify(await K.sealSave(S, sKey, CONFIG.teacherPublicKey))); }
-  catch (e) { console.warn('Lokales Speichern nicht möglich', e); }
+  await C.storeLocal(S, sKey);
 }
 async function downloadSave() {
   await saveLocal();
-  const file = await K.sealSave(S, sKey, CONFIG.teacherPublicKey);
-  const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const blob = new Blob([JSON.stringify(file)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `MathWelt3A_${S.id}_${stamp}.mw3a`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  await C.downloadSaveFile(S, sKey);
   S.unsavedSince = 0; await saveLocal(); updateHud();
   toast(CONFIG.saveUrl ? 'Spielstand-Datei gespeichert. Damit kannst du auf einem anderen Gerät weiterspielen.' : 'Spielstand-Datei gespeichert. Gib sie wie besprochen ab (z. B. in LearningView).');
 }
@@ -49,9 +35,7 @@ async function saveOnline() {
   btn.disabled = true; btn.textContent = 'Speichert …';
   try {
     await saveLocal();
-    const file = await K.sealSave(S, sKey, CONFIG.teacherPublicKey);
-    const res = await fetch(CONFIG.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, file }) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    await C.uploadSave(S, token, sKey);
     S.unsavedSince = 0; await saveLocal(); updateHud();
     toast('Spielstand online gespeichert.');
   } catch (e) {
@@ -60,63 +44,23 @@ async function saveOnline() {
     toast('Online-Speichern hat nicht geklappt. Dein Spielstand wurde als Datei heruntergeladen: Gib sie bitte ab.', 8000);
   } finally { btn.disabled = false; btn.textContent = 'Speichern'; }
 }
-async function loadFile(file) {
-  const data = JSON.parse(await file.text());
-  if (data.app !== 'mathwelt-3a') throw new Error('Das ist keine Spielstand-Datei von MathWelt 3A.');
-  if (data.id !== tokenId()) throw new Error(`Diese Datei gehört zur ID ${data.id}, du bist mit ${tokenId()} angemeldet.`);
-  return K.openSaveAsStudent(data, sKey);
-}
 const tokenId = () => K.tokenId(token);
 
 // ---------- Anmeldung ----------
 async function tryLogin(raw) {
   const err = $('#loginError'); err.textContent = '';
-  const norm = K.normalizeToken(raw);
-  if (norm.length < 10) { err.textContent = 'Bitte gib deinen ganzen Code ein (z. B. 3A07-K7QM-X2PD-9HTR).'; return; }
   $('#loginBtn').disabled = true; $('#loginBtn').textContent = 'Prüfe Code …';
   try {
-    const h = await K.tokenHash(norm);
-    if (!CONFIG.tokenHashes.includes(h)) { err.textContent = 'Dieser Code ist nicht gültig. Kontrolliere die Buchstaben oder frage deine Lehrperson.'; return; }
-    token = norm; sKey = await K.studentKey(norm);
-    const id = tokenId();
-    let loaded = null;
-    try { const raw2 = localStorage.getItem('mathwelt3a_' + id); if (raw2) loaded = await K.openSaveAsStudent(JSON.parse(raw2), sKey); } catch (e) { console.warn(e); }
-    S = loaded || newState(id);
-    migrate(S);
-    S.sessions.push({ start: Date.now(), end: Date.now() });
+    const acc = await C.signIn(raw);
+    token = acc.token; sKey = acc.sKey; S = acc.S;
     $('#login').hidden = true;
-    if (!loaded) showWelcome(); else startGame();
-  } finally { $('#loginBtn').disabled = false; $('#loginBtn').textContent = 'Anmelden'; }
-}
-function migrate(st) {
-  st.posBy = st.posBy || {}; delete st.pos;   // alte Position passt nicht mehr zu den neuen Karten
-  for (const b of BUILDINGS) if (!st.stats[b.id]) st.stats[b.id] = { 1: { c: 0, w: 0 }, 2: { c: 0, w: 0 }, 3: { c: 0, w: 0 }, recent: [] };
+    if (acc.isNew) showWelcome(); else startGame();
+  } catch (e) { err.textContent = e.message; }
+  finally { $('#loginBtn').disabled = false; $('#loginBtn').textContent = 'Anmelden'; }
 }
 function showWelcome() {
   const box = $('#welcome'); box.hidden = false;
   $('#welcomeId').textContent = tokenId();
-}
-
-// QR-Code mit der Kamera lesen (wo der Browser es unterstützt)
-async function scanQr() {
-  const err = $('#loginError');
-  if (!('BarcodeDetector' in window)) { err.textContent = 'Dein Browser kann keine QR-Codes lesen. Tippe den Code unter dem QR-Code ein.'; return; }
-  const video = $('#qrVideo'); const wrap = $('#qrWrap');
-  let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); }
-  catch { err.textContent = 'Die Kamera ist nicht freigegeben. Tippe den Code ein.'; return; }
-  wrap.hidden = false; video.srcObject = stream; await video.play();
-  const det = new window.BarcodeDetector({ formats: ['qr_code'] });
-  let stop = false;
-  $('#qrCancel').onclick = () => { stop = true; };
-  while (!stop) {
-    try {
-      const codes = await det.detect(video);
-      if (codes.length) { const v = codes[0].rawValue; const m = v.match(/[#?&]t=([A-Za-z0-9-]+)/); $('#tokenInput').value = m ? m[1] : v; stop = true; tryLogin($('#tokenInput').value); }
-    } catch { /* weiter versuchen */ }
-    await new Promise(r => setTimeout(r, 250));
-  }
-  stream.getTracks().forEach(t => t.stop()); wrap.hidden = true;
 }
 
 // ---------- Spielstart ----------
@@ -126,19 +70,10 @@ function startGame() {
 }
 
 // ---------- Weltauswahl ----------
-const WORLDS_KEY = 'mathwelt3a_worlds';
-let openWorlds = { ...CONFIG.worlds }, worldsChecked = false, worldsTimer = null;
-try { Object.assign(openWorlds, JSON.parse(localStorage.getItem(WORLDS_KEY) || '{}')); } catch { }
+let openWorlds = C.knownWorlds(), worldsChecked = false, worldsTimer = null;
 
 async function refreshWorlds() {
-  if (!CONFIG.saveUrl) { worldsChecked = true; return; }
-  try {
-    const res = await fetch(new URL('/worlds', CONFIG.saveUrl), { cache: 'no-store', signal: AbortSignal.timeout(5000) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const { worlds } = await res.json();
-    openWorlds = { ...CONFIG.worlds, ...worlds }; worldsChecked = true;
-    try { localStorage.setItem(WORLDS_KEY, JSON.stringify(openWorlds)); } catch { }
-  } catch (e) { console.warn('Freigabe der Welten nicht lesbar', e); worldsChecked = false; }
+  ({ worlds: openWorlds, checked: worldsChecked } = await C.fetchWorlds());
 }
 function renderWorlds() {
   $('#worldCards').innerHTML = Object.values(WORLDS).map(w => {
@@ -207,9 +142,7 @@ function loop(now) {
 
 // ---------- Beschriftungen über den Gebäuden ----------
 const labelEls = {};
-function stageProgress(id) {
-  const st = S.stats[id]; return [1, 2, 3].map(s => (st[s].c >= 3 ? '★' : '☆')).join('');
-}
+const stageProgress = (id) => progressOf(S, id);
 function makeLabels() {
   const box = $('#labels'); box.innerHTML = '';
   for (const [id, m] of Object.entries(worldData.meta)) {
@@ -258,17 +191,8 @@ function showPrompt(id) {
 }
 
 // ---------- Aufgaben-Panel ----------
-function recommended(id) {
-  const r = S.stats[id].recent || [];
-  let s = r.length ? r[r.length - 1].s : 1;
-  const lastSame = r.filter(x => x.s === s).slice(-3);
-  if (lastSame.length === 3 && lastSame.every(x => x.ok)) s = Math.min(3, s + 1);
-  const last2 = r.slice(-2);
-  if (last2.length === 2 && last2.every(x => !x.ok && x.s === s)) s = Math.max(1, s - 1);
-  if (s === 3 && !unlocked3(id)) s = 2;
-  return s;
-}
-const unlocked3 = (id) => S.stats[id][2].c >= 3;
+const recommended = (id) => C.recommended(S, id);
+const unlocked3 = (id) => C.unlocked3(S, id);
 
 function openBuilding(id) {
   if (id === 'level') return openLevel();
@@ -295,42 +219,22 @@ function renderStages() {
 }
 function newTask() {
   const b = BYID[current.id];
-  current.task = b.gen(current.stage); current.tries = 0; current.hint = false; current.done = false; current.t0 = Date.now();
+  C.beginTask(current, b);
   renderStages();
-  const t = current.task;
-  $('#pQuestion').innerHTML = t.q;
-  const parts = t.kind === 'multi' ? t.parts : [{ ...t, label: t.kind === 'num' ? 'Deine Antwort' : '' }];
-  current.parts = parts;
-  $('#pAnswer').innerHTML = parts.map((p, i) => p.kind === 'mc'
-    ? `<fieldset class="mc"><legend>${esc(p.label || 'Wähle die richtige Antwort')}</legend>${p.options.map((o, j) => `<label><input type="radio" name="p${i}" value="${j}"> <span>${esc(o)}</span></label>`).join('')}</fieldset>`
-    : `<label class="num">${esc(p.label)} <input id="p${i}" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 7 oder −2,5">${p.unit ? ' ' + p.unit : (t.unit ? ' ' + t.unit : '')}</label>`).join('');
+  $('#pQuestion').innerHTML = current.task.q;
+  $('#pAnswer').innerHTML = C.answerHtml(current);
   $('#pFeedback').innerHTML = ''; $('#pFeedback').className = '';
   $('#checkBtn').hidden = false; $('#nextBtn').hidden = true; $('#hintBtn').hidden = false; $('#hintBtn').disabled = false;
   $('#pHint').hidden = true;
   const first = $('#pAnswer input[type=text]'); if (first) setTimeout(() => first.focus(), 30);
 }
-function readParts() {
-  return current.parts.map((p, i) => p.kind === 'mc' ? (document.querySelector(`input[name=p${i}]:checked`)?.value ?? null) : $('#p' + i).value);
-}
 async function check() {
   if (!current || current.done) return;
-  const vals = readParts();
+  const vals = C.readAnswers(current);
   if (vals.some(v => v === null || v === '')) { $('#pFeedback').className = 'warn'; $('#pFeedback').textContent = 'Bitte beantworte alle Teile.'; return; }
-  const results = current.parts.map((p, i) => checkPart(p, vals[i]));
-  const ok = results.every(Boolean);
-  current.tries++;
-  const id = current.id, s = current.stage, t = current.task;
-  if (ok || current.tries >= 2) {
-    current.done = true;
-    let coins = 0;
-    if (ok) { coins = STAGES[s].coins; if (current.tries > 1 || current.hint) coins = Math.ceil(coins / 2); }
-    S.coins += coins; S.earned += coins;
-    S.stats[id][s][ok ? 'c' : 'w']++;
-    const rec = S.stats[id].recent; rec.push({ s, ok }); if (rec.length > 10) rec.shift();
-    const plain = t.q.replace(/<img[^>]*>|<svg[\s\S]*?<\/svg>|<table[\s\S]*?<\/table>/g, '[Grafik] ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
-    S.log.push({ t: Date.now(), b: id, s, ok, tries: current.tries, hint: current.hint, ms: Date.now() - current.t0, coins, q: plain, a: vals.map((v, i) => String(current.parts[i].kind === 'mc' ? current.parts[i].options[v] : v).slice(0, 40)) });
-    if (S.log.length > 3000) S.log.splice(0, S.log.length - 3000);
-    S.unsavedSince++;
+  const { ok, results, finished, coins } = C.gradeTask(S, current, vals, VIA);
+  const s = current.stage, t = current.task;
+  if (finished) {
     $('#pFeedback').className = ok ? 'good' : 'bad';
     $('#pFeedback').innerHTML = ok
       ? `<b>Richtig!</b> +${coins} Coins${coins < STAGES[s].coins ? ' (halbe Belohnung wegen Lösungshilfe oder zweitem Versuch)' : ''}<div class="sol">${t.sol}</div>`
@@ -363,9 +267,7 @@ function renderLevel() {
   $('#lvUp').disabled = !can; $('#lvUp').textContent = can ? `Für ${cost} Coins aufsteigen` : `Noch ${cost - S.coins} Coins sammeln`;
 }
 async function levelUp() {
-  const cost = levelCost(S.level); if (S.coins < cost) return;
-  S.coins -= cost; S.level++;
-  S.log.push({ t: Date.now(), b: 'level', s: 0, ok: true, tries: 0, hint: false, ms: 0, coins: -cost, q: `Aufstieg auf Level ${S.level}`, a: [] });
+  if (!C.buyLevel(S, VIA)) return;
   setFamePillar(worldData.world, S.level); renderer.rebuild();
   renderLevel(); updateHud(); refreshLabels(); await saveLocal();
   toast(`Gratuliere! Du bist jetzt Level ${S.level}: ${titleOf(S.level)}.`);
@@ -464,14 +366,14 @@ function setupInput() {
 function init() {
   setupInput();
   $('#loginForm').onsubmit = (e) => { e.preventDefault(); tryLogin($('#tokenInput').value); };
-  $('#scanBtn').onclick = scanQr;
+  $('#scanBtn').onclick = () => C.scanQr((code) => { $('#tokenInput').value = code; tryLogin(code); });
   if (!('BarcodeDetector' in window)) $('#scanBtn').title = 'In diesem Browser nicht verfügbar: Code bitte eintippen.';
   // Code aus dem QR-Link übernehmen (…/index.html#t=CODE)
   const m = location.hash.match(/t=([A-Za-z0-9-]+)/); if (m) { $('#tokenInput').value = m[1]; history.replaceState(null, '', location.pathname); }
   $('#newGameBtn').onclick = () => startGame();
   $('#loadFile').onchange = async (e) => {
     const f = e.target.files[0]; if (!f) return;
-    try { const st = await loadFile(f); S = st; migrate(S); S.sessions.push({ start: Date.now(), end: Date.now() }); await saveLocal(); startGame(); toast('Spielstand geladen.'); }
+    try { S = await C.readSaveFile(f, token, sKey); await saveLocal(); startGame(); toast('Spielstand geladen.'); }
     catch (er) { $('#welcomeError').textContent = er.message || 'Die Datei konnte nicht gelesen werden.'; }
   };
 }

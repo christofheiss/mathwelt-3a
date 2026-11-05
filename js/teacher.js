@@ -2,12 +2,11 @@
 import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
+import { titleOf } from './core.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BYID = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
-const TITLES = ['Neuling', 'Entdecker/in', 'Rechenlehrling', 'Gleichungsprofi', 'Datendetektiv/in', 'Baumeister/in', 'Mathe-Meister/in', 'Legende'];
-const titleOf = (l) => l <= TITLES.length ? TITLES[l - 1] : `Legende +${l - TITLES.length}`;
 
 let dongle = null, priv = null;
 const students = new Map();   // id -> Spielstand
@@ -134,7 +133,7 @@ async function setWorld(id, on) {
     const answer = await K.openChallenge(challenge, priv);
     const res = await workerJson('/worlds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer, exp, ticket, worlds: { ...worldState, [id]: on } }) });
     worldState = { ...CONFIG.worlds, ...res.worlds };
-    $('#worldMsg').textContent = `«${WORLDS[id].name}» ist jetzt ${on ? 'offen' : 'gesperrt'}. Die Klasse sieht es innert etwa einer Minute in der Weltauswahl.`;
+    $('#worldMsg').textContent = `«${WORLDS[id].name}» ist jetzt ${on ? 'offen' : 'gesperrt'}. Die Klasse sieht es innert etwa einer Minute im Spiel und in der App.`;
   } catch (er) { $('#worldMsg').innerHTML = `<span class="error">${esc(er.message || 'Speichern nicht möglich.')}</span>`; }
   renderWorldToggles();
 }
@@ -146,7 +145,8 @@ function summary(st) {
   const ms = st.log.reduce((a, l) => a + Math.min(l.ms || 0, 10 * 60000), 0);
   const lastAct = st.log.length ? st.log[st.log.length - 1].t : st.lastSave;
   const hints = st.log.filter(l => l.hint).length;
-  return { c, w, n: c + w, rate: c + w ? c / (c + w) : null, ms, lastAct, hints };
+  const tasks = st.log.filter(l => l.b !== 'level'), inApp = tasks.filter(l => l.via === 'app').length;
+  return { c, w, n: c + w, rate: c + w ? c / (c + w) : null, ms, lastAct, hints, access: tasks.length ? `Spiel ${tasks.length - inApp} · App ${inApp}` : '–' };
 }
 function bcell(st, id) {
   const s = st.stats[id]; if (!s) return { txt: '–', cls: 'n' };
@@ -179,20 +179,20 @@ function render() {
     <div class="tile"><b>${(list.reduce((a, s) => a + s.level, 0) / list.length).toFixed(1)}</b><span>durchschnittliches Level</span></div>
     ${Object.entries(lz).sort().map(([k, v]) => `<div class="tile ${v.n ? (v.c / v.n >= 0.8 ? 'g' : v.c / v.n >= 0.5 ? 'y' : 'r') : ''}"><b>${v.n ? Math.round(v.c / v.n * 100) + ' %' : '–'}</b><span>${esc(k)} · ${v.n} Aufgaben</span></div>`).join('')}` : '';
   // Tabelle
-  const head = `<thead><tr><th>ID</th><th>Name (nur im Dongle)</th><th>Level</th><th>Coins</th><th>verdient</th><th>Aufgaben</th><th>Treffer</th><th>Hilfen</th><th>Lernzeit</th><th>letzte Aktivität</th>
-    ${BUILDINGS.map(b => `<th class="b" title="${esc(b.name)}">${b.lu === 11 ? 'LU11' : 'LU10'} ${esc(b.name)}</th>`).join('')}</tr></thead>`;
+  const head = `<thead><tr><th>ID</th><th>Name (nur im Dongle)</th><th>Level</th><th>Coins</th><th>verdient</th><th>Aufgaben</th><th>Treffer</th><th>Hilfen</th><th>Lernzeit</th><th>Zugang</th><th>letzte Aktivität</th>
+    ${BUILDINGS.map(b => `<th class="b" title="${esc(b.topic)}">${b.lu === 11 ? 'LU11' : 'LU10'} ${esc(b.name)}</th>`).join('')}</tr></thead>`;
   const ids = new Set([...list.map(s => s.id), ...Object.keys(dongle.names)]);
   const rows = [...ids].sort().map(id => {
     const st = students.get(id);
     const nameInput = `<input class="name" data-id="${esc(id)}" value="${esc(dongle.names[id] || '')}" placeholder="—">`;
-    if (!st) return `<tr class="missing"><td><b>${esc(id)}</b></td><td>${nameInput}</td><td colspan="${8 + BUILDINGS.length}" class="n">keine Datei geladen</td></tr>`;
+    if (!st) return `<tr class="missing"><td><b>${esc(id)}</b></td><td>${nameInput}</td><td colspan="${9 + BUILDINGS.length}" class="n">keine Datei geladen</td></tr>`;
     const s = summary(st);
     return `<tr data-id="${esc(id)}" class="${selected === id ? 'sel' : ''}"><td><b>${esc(id)}</b></td><td>${nameInput}</td><td>${st.level}</td><td>${st.coins}</td><td>${st.earned}</td>
       <td>${s.c}/${s.n}</td><td class="${s.rate == null ? 'n' : s.rate >= .8 ? 'g' : s.rate >= .5 ? 'y' : 'r'}">${s.rate == null ? '–' : Math.round(s.rate * 100) + ' %'}</td>
-      <td>${s.hints}</td><td>${fmtTime(s.ms)}</td><td>${fmtDate(s.lastAct)}</td>
+      <td>${s.hints}</td><td>${fmtTime(s.ms)}</td><td>${s.access}</td><td>${fmtDate(s.lastAct)}</td>
       ${BUILDINGS.map(b => { const c = bcell(st, b.id); return `<td class="cell ${c.cls}">${c.txt}</td>`; }).join('')}</tr>`;
   }).join('');
-  $('#overview').innerHTML = head + `<tbody>${rows || `<tr><td colspan="${10 + BUILDINGS.length}" class="n">Noch keine Daten.</td></tr>`}</tbody>`;
+  $('#overview').innerHTML = head + `<tbody>${rows || `<tr><td colspan="${11 + BUILDINGS.length}" class="n">Noch keine Daten.</td></tr>`}</tbody>`;
   $('#overview').querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = (e) => { if (e.target.tagName !== 'INPUT') { selected = tr.dataset.id; render(); showDetail(selected); } });
   $('#overview').querySelectorAll('input.name').forEach(inp => inp.onchange = () => { dongle.names[inp.dataset.id] = inp.value.trim(); });
 }
@@ -202,9 +202,9 @@ function showDetail(id) {
   const s = summary(st), name = dongle.names[id];
   const byB = BUILDINGS.map(b => {
     const x = st.stats[b.id];
-    return `<tr><td>LU ${b.lu}</td><td>${esc(b.name)}</td><td>${esc(b.lz)}</td>${[1, 2, 3].map(k => `<td>${x[k].c} / ${x[k].c + x[k].w}</td>`).join('')}</tr>`;
+    return `<tr><td>LU ${b.lu}</td><td>${esc(b.name)}</td><td>${esc(b.topic)}</td><td>${esc(b.lz)}</td>${[1, 2, 3].map(k => `<td>${x[k].c} / ${x[k].c + x[k].w}</td>`).join('')}</tr>`;
   }).join('');
-  const log = st.log.slice().reverse().slice(0, 200).map(l => `<tr><td>${fmtDate(l.t)}</td><td>${esc(BYID[l.b]?.name || (l.b === 'level' ? 'Level-Turm' : l.b))}</td>
+  const log = st.log.slice().reverse().slice(0, 200).map(l => `<tr><td>${fmtDate(l.t)}</td><td>${l.via === 'app' ? 'App' : 'Spiel'}</td><td>${esc(BYID[l.b]?.name || (l.b === 'level' ? 'Level-Turm' : l.b))}</td>
     <td>${l.s ? STAGES[l.s].stars : ''}</td><td class="${l.ok ? 'ok' : 'no'}">${l.b === 'level' ? '' : l.ok ? 'richtig' : 'falsch'}</td><td>${l.tries || ''}${l.hint ? ' · Hilfe' : ''}</td>
     <td>${l.coins > 0 ? '+' : ''}${l.coins}</td><td>${l.ms ? Math.round(l.ms / 1000) + ' s' : ''}</td><td title="${esc(l.q)}">${esc((l.q || '').slice(0, 70))}</td><td>${esc((l.a || []).join(' | '))}</td></tr>`).join('');
   const sessions = (st.sessions || []).slice(-10).reverse().map(x => `<li>${fmtDate(x.start)} – ${x.end ? new Date(x.end).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : '?'}</li>`).join('');
@@ -213,22 +213,22 @@ function showDetail(id) {
     <h2>${esc(id)}${name ? ' · ' + esc(name) : ''}: Level ${st.level} (${esc(titleOf(st.level))})</h2>
     <p class="small">Spielstand vom ${fmtDate(st.lastSave)} · ${s.c} von ${s.n} Aufgaben richtig · ${st.coins} Coins (verdient ${st.earned}) · Lernzeit ${fmtTime(s.ms)}</p>
     <div class="cols">
-      <div><h2>Gebäude und Niveaus (richtig / bearbeitet)</h2>
-        <div class="tw"><table class="grid"><thead><tr><th>LU</th><th>Gebäude</th><th>Lernziel</th><th>★ Grund</th><th>★★ Standard</th><th>★★★ Erweiterung</th></tr></thead><tbody>${byB}</tbody></table></div></div>
+      <div><h2>Gebäude / Themen und Niveaus (richtig / bearbeitet)</h2>
+        <div class="tw"><table class="grid"><thead><tr><th>LU</th><th>Gebäude</th><th>Thema in der App</th><th>Lernziel</th><th>★ Grund</th><th>★★ Standard</th><th>★★★ Erweiterung</th></tr></thead><tbody>${byB}</tbody></table></div></div>
       <div><h2>Letzte Sitzungen</h2><ul>${sessions || '<li>–</li>'}</ul></div>
     </div>
     <h2>Lernaktivitäten (neueste zuerst, max. 200)</h2>
-    <div class="tw log"><table class="grid"><thead><tr><th>Zeit</th><th>Gebäude</th><th>Niveau</th><th>Ergebnis</th><th>Versuche</th><th>Coins</th><th>Dauer</th><th>Aufgabe</th><th>Antwort</th></tr></thead><tbody>${log}</tbody></table></div>`;
+    <div class="tw log"><table class="grid"><thead><tr><th>Zeit</th><th>Zugang</th><th>Gebäude</th><th>Niveau</th><th>Ergebnis</th><th>Versuche</th><th>Coins</th><th>Dauer</th><th>Aufgabe</th><th>Antwort</th></tr></thead><tbody>${log}</tbody></table></div>`;
   $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---------- CSV ----------
 $('#csvBtn').onclick = () => {
-  const head = ['ID', 'Name', 'Level', 'Coins', 'verdient', 'richtig', 'bearbeitet', 'Trefferquote', 'Hilfen', 'Lernzeit_min', 'letzte_Aktivitaet', ...BUILDINGS.flatMap(b => [1, 2, 3].map(k => `${b.name} N${k} richtig/bearbeitet`))];
+  const head = ['ID', 'Name', 'Level', 'Coins', 'verdient', 'richtig', 'bearbeitet', 'Trefferquote', 'Hilfen', 'Lernzeit_min', 'Zugang', 'letzte_Aktivitaet', ...BUILDINGS.flatMap(b => [1, 2, 3].map(k => `${b.name} N${k} richtig/bearbeitet`))];
   const lines = [head];
   for (const st of [...students.values()].sort((a, b) => a.id.localeCompare(b.id))) {
     const s = summary(st);
-    lines.push([st.id, dongle.names[st.id] || '', st.level, st.coins, st.earned, s.c, s.n, s.rate == null ? '' : Math.round(s.rate * 100) + '%', s.hints, Math.round(s.ms / 60000), fmtDate(s.lastAct),
+    lines.push([st.id, dongle.names[st.id] || '', st.level, st.coins, st.earned, s.c, s.n, s.rate == null ? '' : Math.round(s.rate * 100) + '%', s.hints, Math.round(s.ms / 60000), s.access, fmtDate(s.lastAct),
       ...BUILDINGS.flatMap(b => [1, 2, 3].map(k => `${st.stats[b.id][k].c}/${st.stats[b.id][k].c + st.stats[b.id][k].w}`))]);
   }
   const csv = '﻿' + lines.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');

@@ -19,11 +19,13 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 | `index.html`, `css/style.css` | Spiel: Login, Willkommen, HUD, Aufgaben-Panel, Level-Turm, Karte, Hilfe |
 | `js/engine.js` | Eigene WebGL-Voxel-Engine: Blocktypen `B`, prozeduraler Texturatlas, `World`, `Renderer` (ein Mesh, Neuaufbau via `rebuild()`), `Player` (Kollision, Schwerkraft, Stufen hochsteigen) |
 | `js/world.js` | Zwei Dörfer 72×26×72 (`gl` LU 11, `aj` LU 10, Definition `WORLDS` in tasks.js): Gebäude-Standorte `SPOTS`, `buildWorld(level, worldId)`, `setFamePillar` (goldene Säule = Level), `buildingAt` |
+| `app.html`, `css/app.css`, `js/app.js`, `app.webmanifest`, `icons/` | Lern-App: zweiter Zugang ohne 3D-Welt, Themengebiete statt Gebäude (`topic` in `BUILDINGS`), Routen `#/themen`, `#/thema/<id>`, `#/level`, `#/stand` |
+| `js/core.js` | Gemeinsam für Spiel und App: Level und Titel, Spielstand, Anmeldung (`signIn`), Speichern, Freigabe, Empfehlung, Bewertung (`gradeTask`). Regeln nur hier ändern |
 | `js/tasks.js` | `BUILDINGS`: 10 Gebäude mit `gen(stage)` für Niveau 1–3 → `{q (HTML), kind: 'num'|'mc'|'multi', answer|options|parts, hint, sol, tol?, unit?}`; `checkPart`, `parseAnswer` (Komma, Brüche, «x =», %), Canvas-Diagramme (Alterspyramide, Liniendiagramm), Waage-SVG |
-| `js/game.js` | Spiellogik: Login (Token-Hash in `CONFIG.tokenHashes`), Spielstand `S`, Speichern lokal (localStorage, verschlüsselt) + Datei-Download `.mw3a`, Niveau-Empfehlung, Coins, Level-Turm, Karte mit Schnellreise, Eingaben |
+| `js/game.js` | Spiel: 3D-Welt, Beschriftungen, HUD, Aufgaben-Panel, Level-Turm, Karte mit Schnellreise, Eingaben (Regeln aus `core.js`) |
 | `js/crypto.js` | Web Crypto: Token-Format/Normalisierung, `tokenHash`, `studentKey` (PBKDF2), `sealSave`/`openSaveAsStudent`/`openSaveAsTeacher`, `makeDongle`/`openDongle`, RSA-Schlüssel |
 | `js/config.js` | **öffentlich**: RSA-Public-Key der Lehrperson + SHA-256-Hashes der gültigen Codes + `saveUrl` (Worker) und `dataRepo` |
-| `worker/worker.js`, `worker/README.md` | Cloudflare Worker fürs Online-Speichern: prüft den Code, schreibt nach `saves/<ID>.mw3a` im privaten Repo `mathwelt-3a-daten`; Einrichtung im README |
+| `worker/worker.js`, `worker/README.md` | Cloudflare Worker fürs Online-Speichern: prüft den Code, schreibt nach `saves/<ID>.mw3a` im privaten Repo `mathwelt-3a-daten`, gibt den eigenen Stand über `POST /load` zurück; Einrichtung im README |
 | `lehrer.html`, `css/teacher.css`, `js/teacher.js` | Masterview: Dongle + Passwort entsperren, `.mw3a` laden (neuester Stand pro ID), Klassen-Kacheln pro LZ, Tabelle pro ID × Gebäude, Detail mit Aktivitäten-Log, CSV, neue Tokens, Namen nur im Dongle, Dongle neu speichern |
 
 ### Sicherheitsmodell
@@ -40,7 +42,9 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 ### Spielregeln
 - Niveaus: ★ Grund 5 Coins, ★★ Standard 10, ★★★ Erweiterung 20 (frei nach 3 richtigen Standard-Aufgaben). Lösungshilfe oder 2. Versuch = halbe Coins. Max. 2 Versuche.
 - Empfehlung: 3 richtige auf einem Niveau → eins höher; 2 falsche → eins tiefer.
-- Level-Kosten: `40 + 30·(Level−1)`. Titel in `TITLES` (game.js und teacher.js, doppelt gepflegt!).
+- Level-Kosten: `40 + 30·(Level−1)`. Titel in `TITLES` (core.js).
+- Log-Einträge tragen `via: 'spiel'|'app'`; ältere Einträge ohne `via` stammen aus dem Spiel.
+- Beim Anmelden gewinnt der Stand mit der jüngsten gelösten Aufgabe (nicht `lastSave`, das ändert schon beim Öffnen). Kein Zusammenführen: Ungespeichertes auf einem anderen Gerät wird nicht übernommen.
 
 ### Gebäude ↔ Lernziele
 LU 11: Waage-Werkstatt LZ1 · Umkehr-Turm LZ1 · Proben-Labor LZ2 · Klammer-Mine LZ1/LZ4 · Rätsel-Bibliothek LZ3 · Detektiv-Büro LZ4
@@ -49,7 +53,7 @@ Lernziele: LZ1 Äquivalenzumformungen, LZ2 Probe, LZ3 Sachsituation → Gleichun
 
 ## Lokal starten und testen
 ```bash
-python3 -m http.server 8765          # dann http://localhost:8765/index.html bzw. /lehrer.html
+python3 -m http.server 8765          # dann http://localhost:8765/index.html, /app.html bzw. /lehrer.html
 node tools/check_tasks.mjs           # Generatoren prüfen (ohne Canvas-Gebäude)
 python3 tests/e2e.py                 # Playwright-Browsertest (braucht private/tokens.json + Dongle)
 ```
@@ -66,6 +70,5 @@ ES-Module brauchen einen Webserver (nicht per file:// öffnen).
 - Auf GitHub veröffentlichen (Repo `mathwelt-3a`, Pages aus `main` / root) und URL auf Token-Karten bzw. in LearningView.
 - QR-Scan nutzt `BarcodeDetector` (nicht in allen Browsern) – optional eine kleine QR-Lese-Bibliothek lokal einbinden.
 - QR-Inhalt könnte die Spiel-URL mit `#t=CODE` enthalten (Login liest das schon aus).
-- `TITLES` und Level-Logik in ein gemeinsames Modul auslagern.
 - Mehr Aufgabentypen (z. B. Ungleichungen S. 33 als Bonus-Gebäude), Sound, Erfolge/Abzeichen, Klassenrangliste in der Masterview.
 - Online-Speichern: Worker einrichten (`worker/README.md`), Datenschutz mit Schule klären.

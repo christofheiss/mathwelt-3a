@@ -4,6 +4,8 @@
 //   GET  /worlds            Freigabe lesen (öffentlich, enthält keine Daten von SuS)
 //   POST /worlds/challenge  Aufgabe, die nur mit dem privaten Schlüssel im Dongle lösbar ist
 //   POST /worlds            Freigabe ändern, mit der gelösten Aufgabe
+// Und er gibt den eigenen, weiterhin verschlüsselten Spielstand zurück, damit es auf einem anderen Gerät weitergeht:
+//   POST /load              braucht den gültigen Code der Schülerin / des Schülers
 // Einrichtung: siehe worker/README.md
 //
 // Variablen:  DATA_REPO       z. B. christofheiss/mathwelt-3a-daten
@@ -153,12 +155,29 @@ async function handleWorlds(request, env, headers, path) {
   return reply(200, { worlds }, headers);
 }
 
+// ---------- Eigenen Spielstand holen ----------
+async function handleLoad(request, env, headers) {
+  if (request.method !== 'POST') return reply(405, { error: 'method' }, headers);
+  let payload;
+  try { payload = JSON.parse(await request.text()); } catch { return reply(400, { error: 'json' }, headers); }
+  const norm = normalizeToken(payload.token);
+  let hashes;
+  try { ({ hashes } = await publicConfig(env)); }
+  catch { return reply(503, { error: 'config' }, headers); }
+  if (!hashes.has(await tokenHash(norm))) return reply(401, { error: 'token' }, headers);
+  const res = await fetch(`https://api.github.com/repos/${env.DATA_REPO}/contents/saves/${norm.slice(0, 4)}.mw3a`, { headers: githubHeaders(env, 'application/vnd.github.raw+json') });
+  if (res.status === 404) return reply(200, { file: null }, headers);
+  if (!res.ok) return reply(502, { error: 'github' }, headers);
+  return reply(200, { file: JSON.parse(await res.text()) }, headers);
+}
+
 export default {
   async fetch(request, env) {
     const headers = corsHeaders(request, env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     const path = new URL(request.url).pathname.replace(/\/+$/, '');
     if (path === '/worlds' || path === '/worlds/challenge') return handleWorlds(request, env, headers, path);
+    if (path === '/load') return handleLoad(request, env, headers);
     if (request.method !== 'POST') return reply(405, { error: 'method' }, headers);
 
     if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) return reply(413, { error: 'too_large' }, headers);

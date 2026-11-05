@@ -5,9 +5,16 @@ Ein Lernspiel in einer 3D-Blockwelt für die 3. Sek (Niveau A), aufgebaut auf **
 Die Schülerinnen und Schüler laufen durch ein Dorf, betreten Gebäude und lösen dort Aufgaben. Für richtige Lösungen gibt es Coins, mit denen sie im Level-Turm ein höheres Level kaufen.
 
 - **Spiel:** `index.html`
+- **Lern-App ohne 3D-Welt:** `app.html` (gleiche Aufgaben, nach Themengebieten geordnet)
 - **Masterview für die Lehrperson:** `lehrer.html` (nur mit Dongle-Datei und Passwort)
 
 Es gibt zwei Welten: **Gleichungen** (LU 11) und **Alt und Jung** (LU 10). Die Lehrperson schaltet sie in der Masterview frei. Coins und Level gelten in beiden Welten.
+
+## Zwei Zugänge
+
+Spiel und Lern-App sind zwei Oberflächen für dasselbe Konto: gleicher Code, gleiche Aufgaben, gleiche Regeln, gleicher verschlüsselter Spielstand. Coins und Level gelten in beiden. Die Masterview zeigt alles zusammen und weist pro Aufgabe aus, ob sie im Spiel oder in der App gelöst wurde. Die Freigabe der Welten gilt auch für die Themengebiete der App.
+
+Beim Anmelden wird der neuste Stand geholt: lokal oder online, je nachdem, wo zuletzt eine Aufgabe gelöst wurde. Damit es auf einem anderen Gerät weitergeht, muss vorher auf dem ersten Gerät gespeichert worden sein. Die App lässt sich im Browser als Web-App installieren («Zum Home-Bildschirm»); sie steht nicht im App Store.
 
 ## Gebäude
 
