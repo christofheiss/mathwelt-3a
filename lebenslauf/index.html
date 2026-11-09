@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'">
+<title>Mein Lebenslauf</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f6f3; --surface: #fff; --ink: #1c2522; --muted: #5a6661; --line: #d7ddd8;
+  --accent: #17594a; --accent-hover: #0f4438; --gold: #e0ac1f; --bad: #b3261e;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--sans); }
+h1, h2, p { margin: 0; }
+h1 { font-size: 1.35rem; }
+h2 { font-size: 1.1rem; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+button, .filebtn { font: inherit; font-weight: 600; min-height: 44px; padding: .4em .9em; border-radius: 8px; border: 1px solid #aeb8b2; background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+button:hover, .filebtn:hover { background: #eef2ef; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+button.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+button.quiet:hover { background: #e7ece8; color: var(--ink); }
+.filebtn input { display: none; }
+
+.bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.status { flex-basis: 100%; min-height: 1.4em; font-size: .875rem; color: var(--muted); }
+.status.error { color: var(--bad); font-weight: 600; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; max-width: 1320px; margin: 0 auto; padding: 16px; align-items: start; }
+#form { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.hint { font-size: .875rem; color: var(--muted); }
+
+.field { display: flex; flex-direction: column; gap: 3px; font-size: .9rem; font-weight: 600; min-width: 0; }
+input:not([type=range]):not([type=file]), textarea { font: 400 1rem var(--sans); color: var(--ink); width: 100%; min-width: 0; min-height: 44px; padding: .45em .6em; border: 1px solid #8b9690; border-radius: 7px; background: #fff; }
+textarea { resize: vertical; }
+.field input[type=range] { width: 100%; min-height: 32px; accent-color: var(--accent); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.wide { grid-column: 1 / -1; }
+
+.photo { display: flex; gap: 16px; align-items: flex-start; }
+#cropCanvas, .photo-empty { width: 132px; aspect-ratio: 3 / 4; border-radius: 6px; flex: none; }
+#cropCanvas { cursor: grab; touch-action: none; border: 1px solid var(--line); }
+#cropCanvas:active { cursor: grabbing; }
+.photo-empty { display: grid; place-items: center; text-align: center; font-size: .85rem; color: var(--muted); border: 1px dashed #8b9690; padding: 8px; }
+.photo-tools { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; flex: 1; min-width: 0; }
+#photoControls { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; width: 100%; }
+
+.rowhead, .schoolrow { display: grid; grid-template-columns: 8.5rem minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.t-ref .rowhead, .t-ref .schoolrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr) auto; }
+.rowhead { font-size: .9rem; font-weight: 600; padding-right: 126px; grid-template-columns: 8.5rem minmax(0, 1.4fr) minmax(0, 1fr); }
+.t-ref .rowhead { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+.schoolrow { margin-bottom: 6px; }
+.rowbtns { display: flex; }
+.rowbtns button { min-width: 40px; padding: 0; border-color: transparent; background: transparent; color: var(--muted); }
+.rowbtns button:hover:not(:disabled) { background: #e7ece8; color: var(--ink); }
+.rowbtns button:disabled { opacity: .3; cursor: default; }
+.addrow { align-self: flex-start; }
+input[type=date] { -webkit-appearance: none; appearance: none; }
+
+.sig { margin-top: 4px; align-items: flex-start; }
+#sigCanvas { width: 100%; aspect-ratio: 4 / 1; background: #fff; border: 1px solid #8b9690; border-radius: 7px; touch-action: none; cursor: crosshair; }
+.sig .hint { font-weight: 400; }
+
+/* Vorschau: A4, alle Masse relativ zur Blattbreite */
+.preview { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sheetwrap { container-type: inline-size; width: 100%; max-width: calc((100vh - 150px) / 1.414); margin-inline: auto; }
+.sheet { background: #fff; color: #000; box-shadow: 0 1px 6px rgba(0, 0, 0, .22); min-height: 141.4cqw; padding: 11.9cqw; font: 1.85cqw/1.35 Arial, Helvetica, sans-serif; }
+.s-head { display: flex; justify-content: space-between; gap: 2cqw; }
+.s-head > div { flex: 1; min-width: 0; }
+.s-title { font-size: 3.1cqw; font-weight: 700; margin-bottom: 2cqw; }
+.s-h { font-size: 2.1cqw; font-weight: 700; border-bottom: .12cqw solid #000; padding-bottom: .3cqw; margin: 2.8cqw 0 1cqw; }
+.s-head .s-h { margin-top: 0; }
+.s-row { display: grid; grid-template-columns: 22.7cqw minmax(0, 1fr); margin-bottom: .45cqw; overflow-wrap: anywhere; }
+.s-photo { width: 16.67cqw; height: 22.22cqw; object-fit: cover; flex: none; }
+.s-nophoto { width: 16.67cqw; height: 22.22cqw; flex: none; border: .1cqw dashed #aaa; color: #888; display: grid; place-items: center; font-size: 1.5cqw; }
+.s-line { margin-bottom: .45cqw; overflow-wrap: anywhere; }
+.s-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 6cqw; margin-top: 6cqw; }
+.s-signbox { min-height: 7.2cqw; border-bottom: .1cqw solid #000; display: flex; align-items: flex-end; overflow-wrap: anywhere; }
+.s-signbox img { width: 100%; max-width: 28.5cqw; display: block; }
+.s-cap { font-size: 1.4cqw; color: #555; margin-top: .4cqw; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .preview { position: static; }
+  .sheetwrap { max-width: none; }
+  .actions { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  .bar { position: static; }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .rowhead, .t-ref .rowhead { display: none; }
+  .schoolrow, .t-ref .schoolrow { grid-template-columns: minmax(0, 1fr); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .photo { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Mein Lebenslauf</h1>
+  <div class="actions">
+    <button type="button" class="primary" id="btnWord">Als Word speichern</button>
+    <button type="button" id="btnSave">Stand sichern</button>
+    <label class="filebtn" tabindex="0">Stand laden<input type="file" id="fileLoad" accept=".json,application/json"></label>
+    <button type="button" class="quiet" id="btnClear">Alles löschen</button>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</header>
+
+<main class="layout">
+  <form id="form" autocomplete="off" novalidate>
+    <p class="hint">Deine Angaben bleiben auf diesem Gerät. Der Browser kann sie nach einigen Tagen löschen. Tippe darum am Schluss auf «Stand sichern» und lege die Datei in «Dateien» ab. Mit «Stand laden» arbeitest du später weiter.</p>
+    <section class="card">
+      <h2>Foto</h2>
+      <p class="hint">Das Foto erscheint oben rechts. Nimm ein ruhiges Porträt, auf dem man dich gut erkennt.</p>
+      <div class="photo">
+        <canvas id="cropCanvas" width="600" height="800" tabindex="0" hidden aria-label="Bildausschnitt. Mit den Pfeiltasten oder durch Ziehen verschieben."></canvas>
+        <div class="photo-empty" id="photoEmpty">Noch kein Foto</div>
+        <div class="photo-tools">
+          <label class="filebtn" tabindex="0"><span id="photoBtnText">Foto auswählen</span><input type="file" id="fotoFile" accept="image/*"></label>
+          <div id="photoControls" hidden>
+            <label class="field">Vergrössern
+              <input type="range" id="fotoZoom" min="1" max="3" step="0.01" value="1">
+            </label>
+            <p class="hint">Verschiebe das Bild mit dem Finger, bis der Ausschnitt passt.</p>
+            <button type="button" class="quiet" id="fotoRemove">Foto entfernen</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Personalien</h2>
+      <div class="grid2">
+        <label class="field">Vorname <input data-f="vorname" id="vorname" maxlength="60"></label>
+        <label class="field">Nachname <input data-f="nachname" id="nachname" maxlength="60"></label>
+        <label class="field wide">Strasse und Nummer <input data-f="strasse" maxlength="100"></label>
+        <label class="field">PLZ <input data-f="plz" inputmode="numeric" maxlength="10"></label>
+        <label class="field">Wohnort <input data-f="wohnort" maxlength="60"></label>
+        <label class="field">Geburtsdatum <input data-f="geburtsdatum" type="date"></label>
+        <label class="field">Heimatort / Nationalität <input data-f="heimatort" maxlength="80"></label>
+        <label class="field">Telefon <input data-f="telefon" type="tel" maxlength="30"></label>
+        <label class="field">E-Mail <input data-f="email" type="email" maxlength="100"></label>
+        <label class="field wide">Sprachen <input data-f="sprachen" maxlength="150" placeholder="z. B. Deutsch, Englisch, Französisch"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Schulischer Werdegang</h2>
+      <p class="hint">Beginne mit der ersten Schule. Mit den Pfeilen änderst du die Reihenfolge.</p>
+      <div class="rowhead" aria-hidden="true"><span>Zeit</span><span>Schule</span><span>Ort</span></div>
+      <div data-table="schule"></div>
+      <button type="button" class="addrow" data-add="schule">Schule hinzufügen</button>
+    </section>
+
+    <section class="card">
+      <h2>Schnupperlehren</h2>
+      <div class="rowhead" aria-hidden="true"><span>Zeit</span><span>Beruf</span><span>Betrieb und Ort</span></div>
+      <div data-table="schnupper"></div>
+      <button type="button" class="addrow" data-add="schnupper">Schnupperlehre hinzufügen</button>
+    </section>
+
+    <section class="card">
+      <h2>Interessen</h2>
+      <label class="field">Pro Zeile ein Interesse
+        <textarea data-f="interessen" rows="4" maxlength="800" placeholder="z. B. Unihockey im Verein&#10;Gitarre spielen"></textarea>
+      </label>
+    </section>
+
+    <section class="card t-ref">
+      <h2>Referenzen</h2>
+      <p class="hint">Frage die Personen zuerst, ob du sie angeben darfst.</p>
+      <div class="rowhead" aria-hidden="true"><span>Name</span><span>Funktion und Betrieb</span><span>Telefon oder E-Mail</span></div>
+      <div data-table="referenzen"></div>
+      <button type="button" class="addrow" data-add="referenzen">Referenz hinzufügen</button>
+    </section>
+
+    <section class="card">
+      <h2>Ort, Datum und Unterschrift</h2>
+      <div class="grid2">
+        <label class="field">Ort <input data-f="ortUnterschrift" maxlength="60" id="ortUnterschrift"></label>
+        <label class="field">Datum <input data-f="datum" type="date"></label>
+      </div>
+      <div class="field sig">
+        <span id="sigLabel">Unterschrift</span>
+        <canvas id="sigCanvas" width="800" height="200" aria-labelledby="sigLabel"></canvas>
+        <p class="hint">Unterschreibe mit dem Finger, dem Stift oder der Maus. Du kannst das Feld auch leer lassen und auf dem Ausdruck von Hand unterschreiben.</p>
+        <button type="button" class="quiet" id="sigClear">Unterschrift löschen</button>
+      </div>
+    </section>
+  </form>
+
+  <aside class="preview" aria-label="Vorschau">
+    <h2>Vorschau</h2>
+    <div class="sheetwrap"><div class="sheet" id="sheet"></div></div>
+  </aside>
+</main>
+
+<script>
+/* Baut aus einem Lebenslauf-Modell eine .docx-Datei, ohne Bibliothek.
+   Eine .docx ist ein ZIP-Archiv mit XML-Dateien; hier ungepackt gespeichert.
+   Modell: { name, personalien: [[Bezeichnung, Wert]],
+             schule, schnupper, referenzen: je [{ links, rechts }],
+             interessen: [String], ortDatum, foto: Uint8Array|null (JPEG),
+             unterschrift: Uint8Array|null (PNG) } */
+(function (root) {
+  'use strict';
+
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const NS_ALL = NS +
+    ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"' +
+    ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"' +
+    ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"' +
+    ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+  const HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+  // Satzspiegel A4 mit 2.5 cm Rand: 9070 DXA Breite
+  const COL_LABEL = 2700, COL_VALUE = 4100, COL_PHOTO = 2270;
+  const COL_REST = COL_VALUE + COL_PHOTO;
+  const CM = 360000; // EMU
+
+  function esc(s) {
+    return String(s)
+      .replace(/[^\x09\x0A\x0D\x20-퟿-�\u{10000}-\u{10FFFF}]/gu, '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  const run = (text) => `<w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
+  const para = (inner = '', style = '', ppr = '') => {
+    const s = style ? `<w:pStyle w:val="${style}"/>` : '';
+    return `<w:p>${s || ppr ? `<w:pPr>${s}${ppr}</w:pPr>` : ''}${inner}</w:p>`;
+  };
+  const cell = (width, content, tcpr = '') =>
+    `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${tcpr}</w:tcPr>${content}</w:tc>`;
+  const row = (cells) => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${cells}</w:tr>`;
+
+  function table(widths, rows) {
+    const total = widths.reduce((a, b) => a + b, 0);
+    return '<w:tbl><w:tblPr>' +
+      `<w:tblW w:w="${total}" w:type="dxa"/><w:tblLayout w:type="fixed"/>` +
+      '<w:tblCellMar><w:top w:w="30" w:type="dxa"/><w:left w:w="0" w:type="dxa"/>' +
+      '<w:bottom w:w="30" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>' +
+      '</w:tblPr><w:tblGrid>' + widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('') +
+      '</w:tblGrid>' + rows.join('') + '</w:tbl>';
+  }
+
+  function image(rid, id, name, alt, cx, cy) {
+    return '<w:r><w:drawing>' +
+      `<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/>` +
+      `<wp:docPr id="${id}" name="${esc(name)}" descr="${esc(alt)}"/>` +
+      '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>' +
+      `<pic:nvPicPr><pic:cNvPr id="${id}" name="${esc(name)}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+      `<pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+      `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
+      '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+  }
+
+  function headTable(m) {
+    const photoMar = '<w:tcMar><w:right w:w="0" w:type="dxa"/></w:tcMar>';
+    const photo = m.foto
+      ? para(image('rId3', 1, 'Foto', 'Foto von ' + m.name, Math.round(3.5 * CM), Math.round(3.5 * 4 / 3 * CM)), '', '<w:jc w:val="right"/>')
+      : para();
+    const span = '<w:gridSpan w:val="2"/>';
+    const rows = [
+      row(cell(COL_LABEL + COL_VALUE, para(run('Lebenslauf'), 'Title'), span) +
+          cell(COL_PHOTO, photo, '<w:vMerge w:val="restart"/>' + photoMar)),
+      row(cell(COL_LABEL + COL_VALUE, para(run('Personalien'), 'Heading1'), span) +
+          cell(COL_PHOTO, para(), '<w:vMerge/>' + photoMar)),
+    ];
+    for (const [label, value] of m.personalien) {
+      rows.push(row(cell(COL_LABEL, para(run(label))) + cell(COL_VALUE, para(run(value))) +
+        cell(COL_PHOTO, para(), '<w:vMerge/>' + photoMar)));
+    }
+    return table([COL_LABEL, COL_VALUE, COL_PHOTO], rows);
+  }
+
+  function signTable(m) {
+    const line = '<w:tcBorders><w:bottom w:val="single" w:sz="6" w:space="0" w:color="000000"/></w:tcBorders><w:vAlign w:val="bottom"/>';
+    const sig = m.unterschrift
+      ? para(image('rId4', 2, 'Unterschrift', 'Unterschrift von ' + m.name, 6 * CM, Math.round(1.5 * CM)))
+      : para();
+    const W = [4200, 670, 4200];
+    return table(W, [
+      '<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="1000" w:hRule="atLeast"/></w:trPr>' +
+        cell(W[0], para(m.ortDatum ? run(m.ortDatum) : '', '', '<w:keepNext/>'), line) +
+        cell(W[1], para('', '', '<w:keepNext/>')) +
+        cell(W[2], sig, line) + '</w:tr>',
+      row(cell(W[0], para(run('Ort, Datum'), 'Beschriftung')) + cell(W[1], para()) +
+          cell(W[2], para(run('Unterschrift'), 'Beschriftung'))),
+    ]);
+  }
+
+  function documentXml(m) {
+    const body = [headTable(m)];
+    const block = (title, rows) => {
+      if (!rows.length) return;
+      body.push(para(run(title), 'Heading1'));
+      body.push(table([COL_LABEL, COL_REST], rows.map((r) =>
+        row(cell(COL_LABEL, para(run(r.links))) + cell(COL_REST, para(run(r.rechts)))))));
+    };
+    block('Schulischer Werdegang', m.schule);
+    block('Schnupperlehren', m.schnupper);
+    if (m.interessen.length) {
+      body.push(para(run('Interessen'), 'Heading1'));
+      for (const line of m.interessen) body.push(para(run(line), '', '<w:spacing w:after="40"/>'));
+    }
+    block('Referenzen', m.referenzen);
+    body.push(para('', '', '<w:keepNext/><w:spacing w:before="480"/>'));
+    body.push(signTable(m));
+    body.push(para('', '', '<w:spacing w:line="20" w:lineRule="exact"/>'));
+    return HEAD + `<w:document ${NS_ALL}><w:body>${body.join('')}` +
+      '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+      '<w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1418" w:header="709" w:footer="709" w:gutter="0"/>' +
+      '</w:sectPr></w:body></w:document>';
+  }
+
+  const STYLES = HEAD + `<w:styles ${NS}>` +
+    '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/>' +
+    '<w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="de-CH"/></w:rPr></w:rPrDefault>' +
+    '<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>' +
+    '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>' +
+    '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>' +
+    '<w:pPr><w:keepNext/><w:spacing w:before="0" w:after="200"/></w:pPr><w:rPr><w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>' +
+    '<w:pPr><w:keepNext/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="000000"/></w:pBdr>' +
+    '<w:spacing w:before="320" w:after="100"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:bCs/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:customStyle="1" w:styleId="Beschriftung"><w:name w:val="Beschriftung Feld"/><w:basedOn w:val="Normal"/><w:qFormat/>' +
+    '<w:rPr><w:color w:val="555555"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr></w:style>' +
+    '</w:styles>';
+
+  const SETTINGS = HEAD + `<w:settings ${NS}><w:defaultTabStop w:val="709"/>` +
+    '<w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat>' +
+    '</w:settings>';
+
+  const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+  function parts(m) {
+    const enc = new TextEncoder();
+    const rels = [
+      `<Relationship Id="rId1" Type="${REL}/styles" Target="styles.xml"/>`,
+      `<Relationship Id="rId2" Type="${REL}/settings" Target="settings.xml"/>`,
+    ];
+    if (m.foto) rels.push(`<Relationship Id="rId3" Type="${REL}/image" Target="media/foto.jpg"/>`);
+    if (m.unterschrift) rels.push(`<Relationship Id="rId4" Type="${REL}/image" Target="media/unterschrift.png"/>`);
+
+    const types = HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/>' +
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+      '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+      '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' +
+      '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+      '</Types>';
+
+    const now = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    const core = HEAD + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
+      ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/"' +
+      ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+      `<dc:title>${esc('Lebenslauf ' + m.name)}</dc:title><dc:creator>${esc(m.name)}</dc:creator>` +
+      `<dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>` +
+      '</cp:coreProperties>';
+
+    const list = [
+      ['[Content_Types].xml', types],
+      ['_rels/.rels', HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        `<Relationship Id="rId1" Type="${REL}/officeDocument" Target="word/document.xml"/>` +
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+        '</Relationships>'],
+      ['docProps/core.xml', core],
+      ['word/document.xml', documentXml(m)],
+      ['word/styles.xml', STYLES],
+      ['word/settings.xml', SETTINGS],
+      ['word/_rels/document.xml.rels', HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rels.join('') + '</Relationships>'],
+    ].map(([name, text]) => [name, enc.encode(text)]);
+    if (m.foto) list.push(['word/media/foto.jpg', m.foto]);
+    if (m.unterschrift) list.push(['word/media/unterschrift.png', m.unterschrift]);
+    return list;
+  }
+
+  const CRC_TABLE = new Uint32Array(256).map((_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function zip(files) {
+    const enc = new TextEncoder();
+    const d = new Date();
+    const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const chunks = [], central = [];
+    let offset = 0;
+    for (const [name, data] of files) {
+      const nameBytes = enc.encode(name);
+      const crc = crc32(data);
+      const common = (v, at) => {
+        v.setUint16(at, 20, true);          // Version
+        v.setUint16(at + 2, 0x0800, true);  // UTF-8-Namen
+        v.setUint16(at + 4, 0, true);       // ungepackt
+        v.setUint16(at + 6, time, true);
+        v.setUint16(at + 8, date, true);
+        v.setUint32(at + 10, crc, true);
+        v.setUint32(at + 14, data.length, true);
+        v.setUint32(at + 18, data.length, true);
+        v.setUint16(at + 22, nameBytes.length, true);
+      };
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true);
+      common(local, 4);
+      chunks.push(new Uint8Array(local.buffer), nameBytes, data);
+
+      const entry = new DataView(new ArrayBuffer(46));
+      entry.setUint32(0, 0x02014b50, true);
+      entry.setUint16(4, 20, true);
+      common(entry, 6);
+      entry.setUint32(42, offset, true);
+      central.push(new Uint8Array(entry.buffer), nameBytes);
+      offset += 30 + nameBytes.length + data.length;
+    }
+    const centralSize = central.reduce((n, c) => n + c.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, files.length, true);
+    end.setUint16(10, files.length, true);
+    end.setUint32(12, centralSize, true);
+    end.setUint32(16, offset, true);
+
+    const all = [...chunks, ...central, new Uint8Array(end.buffer)];
+    const out = new Uint8Array(all.reduce((n, c) => n + c.length, 0));
+    let at = 0;
+    for (const c of all) { out.set(c, at); at += c.length; }
+    return out;
+  }
+
+  root.LebenslaufDocx = { build: (model) => zip(parts(model)) };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* Lebenslauf-App: alle Daten bleiben im Browser (localStorage) oder in einer
+   Datei, die die Schülerin oder der Schüler selbst sichert. Kein Netzverkehr. */
+'use strict';
+
+const KEY = 'lebenslauf-3a-v1';
+const TEXT_FIELDS = ['vorname', 'nachname', 'strasse', 'plz', 'wohnort', 'geburtsdatum', 'heimatort',
+  'sprachen', 'telefon', 'email', 'interessen', 'ortUnterschrift', 'datum'];
+const MAX_ROWS = 20;
+const $ = (id) => document.getElementById(id);
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+/* Die drei Tabellen im Formular: [Schlüssel, Bezeichnung, maximale Länge] */
+const TABLES = {
+  schule: {
+    cols: [['zeit', 'Zeit', 40], ['schule', 'Schule', 120], ['ort', 'Ort', 60]],
+    rows: 2,
+    hints: [['z. B. 2017 – 2023', 'z. B. Primarschule', 'z. B. Neuenkirch'], ['z. B. seit 2023', 'z. B. Sekundarschule, Niveau A', 'z. B. Neuenkirch']],
+  },
+  schnupper: {
+    cols: [['zeit', 'Zeit', 40], ['beruf', 'Beruf', 120], ['betrieb', 'Betrieb und Ort', 120]],
+    rows: 2,
+    hints: [['z. B. März 2026', 'z. B. Fachperson Betreuung', 'z. B. Kita Sonne, Sursee']],
+  },
+  referenzen: {
+    cols: [['name', 'Name', 80], ['funktion', 'Funktion und Betrieb', 120], ['kontakt', 'Telefon oder E-Mail', 100]],
+    rows: 1,
+    hints: [['z. B. Sandra Muster', 'z. B. Klassenlehrerin', 'z. B. 041 000 00 00']],
+  },
+};
+const emptyRow = (table) => Object.fromEntries(TABLES[table].cols.map(([k]) => [k, '']));
+function blank() {
+  const s = { foto: null, unterschrift: null };
+  for (const t in TABLES) s[t] = Array.from({ length: TABLES[t].rows }, () => emptyRow(t));
+  for (const f of TEXT_FIELDS) s[f] = '';
+  s.datum = today();
+  return s;
+}
+
+let state = blank();
+let fotoImage = null;   // geladenes Originalbild
+let fotoJpeg = null;    // aktueller Ausschnitt als data:-URL
+
+/* ---------- Status und Speichern ---------- */
+function say(text, isError = false) {
+  const el = $('status');
+  el.textContent = text;
+  el.classList.toggle('error', isError);
+}
+
+function saveLocal() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    const t = new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+    say(`Automatisch in diesem Browser gespeichert (${t}).`);
+  } catch {
+    say('Der Browser konnte nicht speichern. Sichere deinen Stand als Datei.', true);
+  }
+}
+let saveTimer = 0;
+function saveSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveLocal, 300);
+}
+
+/* Geladene Daten nie ungeprüft übernehmen: nur bekannte Felder, nur Text, nur Bilder. */
+function normalize(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('kein Stand');
+  const s = blank();
+  const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  for (const f of TEXT_FIELDS) if (typeof raw[f] === 'string') s[f] = str(raw[f], 800);
+  for (const t in TABLES) {
+    if (!Array.isArray(raw[t]) || !raw[t].length) continue;
+    s[t] = raw[t].slice(0, MAX_ROWS).map((r) =>
+      Object.fromEntries(TABLES[t].cols.map(([k, , max]) => [k, str(r?.[k], max)])));
+  }
+  const f = raw.foto;
+  if (f && typeof f.src === 'string' && /^data:image\/(jpeg|png);base64,/.test(f.src)) {
+    const num = (v, d) => (Number.isFinite(v) ? v : d);
+    s.foto = { src: f.src, z: Math.min(3, Math.max(1, num(f.z, 1))), x: num(f.x, 0.5), y: num(f.y, 0.5) };
+  }
+  if (typeof raw.unterschrift === 'string' && raw.unterschrift.startsWith('data:image/png;base64,')) {
+    s.unterschrift = raw.unterschrift;
+  }
+  return s;
+}
+
+function hasContent() {
+  return !!(state.foto || state.unterschrift ||
+    TEXT_FIELDS.some((f) => f !== 'datum' && state[f].trim()) ||
+    Object.keys(TABLES).some((t) => state[t].some((r) => Object.values(r).some(Boolean))));
+}
+
+function fileStem() {
+  const name = [state.vorname, state.nachname].map((p) => p.trim()).filter(Boolean).join('_');
+  return ('Lebenslauf_' + name).replace(/[^\p{L}\p{N}-]+/gu, '_').replace(/_$/, '');
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+/* Öffnet das Menü «Senden an» des Geräts (iPad: Teilen-Menü); wo es das nicht gibt, Download. */
+const WORD_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+function canSend(type, name) {
+  try {
+    return !!navigator.canShare?.({ files: [new File(['x'], name, { type })] });
+  } catch {
+    return false;
+  }
+}
+async function deliver(blob, name) {
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      return 'gesendet';
+    } catch (e) {
+      if (e.name === 'AbortError') return 'abgebrochen';
+    }
+  }
+  download(blob, name);
+  return 'heruntergeladen';
+}
+
+/* ---------- Modell für Vorschau und Word ---------- */
+function longDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return '';
+  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function model() {
+  const t = (v) => (v || '').trim();
+  const personalien = [
+    ['Vorname', t(state.vorname)],
+    ['Nachname', t(state.nachname)],
+    ['Strasse', t(state.strasse)],
+    ['Wohnort', [t(state.plz), t(state.wohnort)].filter(Boolean).join(' ')],
+    ['Geburtsdatum', longDate(state.geburtsdatum)],
+    ['Heimatort / Nationalität', t(state.heimatort)],
+    ['Sprachen', t(state.sprachen)],
+    ['Telefon', t(state.telefon)],
+    ['E-Mail', t(state.email)],
+  ].filter(([, v]) => v);
+  // Zeile der Tabelle: erstes Feld links, die übrigen rechts mit Komma verbunden
+  const rows = (list, first, ...rest) => list
+    .map((r) => ({ links: t(r[first]), rechts: rest.map((k) => t(r[k])).filter(Boolean).join(', ') }))
+    .filter((r) => r.links || r.rechts);
+  return {
+    name: [t(state.vorname), t(state.nachname)].filter(Boolean).join(' '),
+    personalien,
+    schule: rows(state.schule, 'zeit', 'schule', 'ort'),
+    schnupper: rows(state.schnupper, 'zeit', 'beruf', 'betrieb'),
+    referenzen: rows(state.referenzen, 'name', 'funktion', 'kontakt'),
+    interessen: state.interessen.split('\n').map(t).filter(Boolean),
+    ortDatum: [t(state.ortUnterschrift) || t(state.wohnort), longDate(state.datum)].filter(Boolean).join(', '),
+  };
+}
+
+/* ---------- Vorschau ---------- */
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function sRow(a, b) {
+  const r = el('div', 's-row');
+  r.append(el('div', '', a), el('div', '', b));
+  return r;
+}
+function renderPreview() {
+  const m = model();
+  const sheet = $('sheet');
+  sheet.replaceChildren();
+
+  const head = el('div', 's-head');
+  const left = el('div');
+  left.append(el('div', 's-title', 'Lebenslauf'), el('div', 's-h', 'Personalien'));
+  for (const [a, b] of m.personalien) left.append(sRow(a, b));
+  head.append(left);
+  if (fotoJpeg) {
+    const img = el('img', 's-photo');
+    img.src = fotoJpeg;
+    img.alt = 'Dein Foto';
+    head.append(img);
+  } else {
+    head.append(el('div', 's-nophoto', 'Foto'));
+  }
+  sheet.append(head);
+
+  const block = (title, rows) => {
+    if (!rows.length) return;
+    sheet.append(el('div', 's-h', title));
+    for (const r of rows) sheet.append(sRow(r.links, r.rechts));
+  };
+  block('Schulischer Werdegang', m.schule);
+  block('Schnupperlehren', m.schnupper);
+  if (m.interessen.length) {
+    sheet.append(el('div', 's-h', 'Interessen'));
+    for (const line of m.interessen) sheet.append(el('div', 's-line', line));
+  }
+  block('Referenzen', m.referenzen);
+
+  const sign = el('div', 's-sign');
+  const a = el('div'), b = el('div');
+  const boxA = el('div', 's-signbox', m.ortDatum);
+  const boxB = el('div', 's-signbox');
+  if (state.unterschrift) {
+    const img = el('img');
+    img.src = state.unterschrift;
+    img.alt = 'Deine Unterschrift';
+    boxB.append(img);
+  }
+  a.append(boxA, el('div', 's-cap', 'Ort, Datum'));
+  b.append(boxB, el('div', 's-cap', 'Unterschrift'));
+  sign.append(a, b);
+  sheet.append(sign);
+}
+
+/* ---------- Formular ---------- */
+function fillInputs() {
+  document.querySelectorAll('[data-f]').forEach((i) => { i.value = state[i.dataset.f] || ''; });
+  $('ortUnterschrift').placeholder = state.wohnort || '';
+  for (const t in TABLES) renderRows(t);
+}
+function changed() {
+  renderPreview();
+  saveSoon();
+}
+$('form').addEventListener('submit', (e) => e.preventDefault());
+$('form').addEventListener('input', (e) => {
+  const f = e.target.dataset?.f;
+  if (!f) return;
+  state[f] = e.target.value;
+  if (f === 'wohnort') $('ortUnterschrift').placeholder = state.wohnort;
+  changed();
+});
+
+/* Schulzeilen */
+function renderRows(table, focus) {
+  const box = document.querySelector(`[data-table="${table}"]`);
+  const list = state[table];
+  box.replaceChildren();
+  list.forEach((r, i) => {
+    const line = el('div', 'schoolrow');
+    TABLES[table].cols.forEach(([k, label, max], col) => {
+      const inp = el('input');
+      inp.value = r[k];
+      inp.maxLength = max;
+      inp.dataset.row = i;
+      inp.dataset.k = k;
+      inp.placeholder = TABLES[table].hints[i]?.[col] || '';
+      inp.setAttribute('aria-label', `${label}, Zeile ${i + 1}`);
+      line.append(inp);
+    });
+    const btns = el('div', 'rowbtns');
+    [['hoch', '↑', `Zeile ${i + 1} nach oben`, i === 0],
+     ['runter', '↓', `Zeile ${i + 1} nach unten`, i === list.length - 1],
+     ['weg', '✕', `Zeile ${i + 1} entfernen`, list.length === 1]].forEach(([act, sym, label, off]) => {
+      const b = el('button', '', sym);
+      b.type = 'button';
+      b.dataset.act = act;
+      b.dataset.row = i;
+      b.disabled = off;
+      b.setAttribute('aria-label', label);
+      btns.append(b);
+    });
+    line.append(btns);
+    box.append(line);
+  });
+  if (focus) box.querySelector(focus)?.focus();
+}
+document.querySelectorAll('[data-table]').forEach((box) => {
+  const table = box.dataset.table;
+  box.addEventListener('input', (e) => {
+    const { row, k } = e.target.dataset;
+    if (k === undefined) return;
+    state[table][+row][k] = e.target.value;
+    changed();
+  });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const i = +b.dataset.row, list = state[table];
+    let to = i;
+    if (b.dataset.act === 'hoch' && i > 0) to = i - 1;
+    else if (b.dataset.act === 'runter' && i < list.length - 1) to = i + 1;
+    else if (b.dataset.act === 'weg' && list.length > 1) {
+      list.splice(i, 1);
+      renderRows(table, `input[data-row="${Math.min(i, list.length - 1)}"]`);
+      changed();
+      return;
+    } else return;
+    [list[i], list[to]] = [list[to], list[i]];
+    renderRows(table, `button[data-act="${b.dataset.act}"][data-row="${to}"]`);
+    changed();
+  });
+});
+document.querySelectorAll('[data-add]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const table = b.dataset.add;
+    if (state[table].length >= MAX_ROWS) return;
+    state[table].push(emptyRow(table));
+    renderRows(table, `input[data-row="${state[table].length - 1}"]`);
+    changed();
+  });
+});
+
+/* ---------- Foto: ins Format 3:4 zuschneiden ---------- */
+const crop = $('cropCanvas');
+
+function imageMetrics() {
+  const s = Math.max(crop.width / fotoImage.naturalWidth, crop.height / fotoImage.naturalHeight) * state.foto.z;
+  return { w: fotoImage.naturalWidth * s, h: fotoImage.naturalHeight * s };
+}
+function clampFoto() {
+  const { w, h } = imageMetrics();
+  const hx = crop.width / 2 / w, hy = crop.height / 2 / h;
+  state.foto.x = Math.min(1 - hx, Math.max(hx, state.foto.x));
+  state.foto.y = Math.min(1 - hy, Math.max(hy, state.foto.y));
+}
+function drawCrop() {
+  clampFoto();
+  const { w, h } = imageMetrics();
+  const ctx = crop.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, crop.width, crop.height);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(fotoImage, crop.width / 2 - state.foto.x * w, crop.height / 2 - state.foto.y * h, w, h);
+  fotoJpeg = crop.toDataURL('image/jpeg', 0.88);
+}
+function showFotoUi() {
+  const has = !!state.foto;
+  crop.hidden = !has;
+  $('photoEmpty').hidden = has;
+  $('photoControls').hidden = !has;
+  $('photoBtnText').textContent = has ? 'Anderes Foto' : 'Foto auswählen';
+  if (has) $('fotoZoom').value = state.foto.z;
+}
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+async function applyFoto() {
+  fotoImage = null;
+  fotoJpeg = null;
+  if (state.foto) {
+    try {
+      fotoImage = await loadImage(state.foto.src);
+      drawCrop();
+    } catch {
+      state.foto = null;
+      say('Das gespeicherte Foto konnte nicht gelesen werden.', true);
+    }
+  }
+  showFotoUi();
+  renderPreview();
+}
+
+$('fotoFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    // Original verkleinern, damit der Stand klein bleibt und der Browser ihn speichern kann
+    const scale = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale);
+    c.height = Math.round(img.naturalHeight * scale);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    state.foto = { src: c.toDataURL('image/jpeg', 0.85), z: 1, x: 0.5, y: 0.42 };
+    await applyFoto();
+    saveSoon();
+  } catch {
+    say('Dieses Bild geht nicht. Nimm bitte ein Foto im Format JPG oder PNG.', true);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+});
+$('fotoZoom').addEventListener('input', (e) => {
+  if (!fotoImage) return;
+  state.foto.z = +e.target.value;
+  drawCrop();
+  changed();
+});
+$('fotoRemove').addEventListener('click', () => {
+  state.foto = null;
+  applyFoto();
+  saveSoon();
+});
+
+let dragFrom = null;
+crop.addEventListener('pointerdown', (e) => {
+  crop.setPointerCapture(e.pointerId);
+  dragFrom = { x: e.clientX, y: e.clientY };
+});
+crop.addEventListener('pointermove', (e) => {
+  if (!dragFrom || !fotoImage) return;
+  moveFoto(e.clientX - dragFrom.x, e.clientY - dragFrom.y);
+  dragFrom = { x: e.clientX, y: e.clientY };
+});
+crop.addEventListener('pointerup', () => { dragFrom = null; });
+crop.addEventListener('pointercancel', () => { dragFrom = null; });
+crop.addEventListener('keydown', (e) => {
+  const step = { ArrowLeft: [8, 0], ArrowRight: [-8, 0], ArrowUp: [0, 8], ArrowDown: [0, -8] }[e.key];
+  if (!step || !fotoImage) return;
+  e.preventDefault();
+  moveFoto(step[0], step[1]);
+});
+function moveFoto(dx, dy) {
+  const k = crop.width / crop.getBoundingClientRect().width;
+  const { w, h } = imageMetrics();
+  state.foto.x -= dx * k / w;
+  state.foto.y -= dy * k / h;
+  drawCrop();
+  changed();
+}
+
+/* ---------- Unterschrift ---------- */
+const sig = $('sigCanvas');
+const sigCtx = sig.getContext('2d');
+let drawing = false;
+function sigPoint(e) {
+  const r = sig.getBoundingClientRect();
+  return [(e.clientX - r.left) * sig.width / r.width, (e.clientY - r.top) * sig.height / r.height];
+}
+sig.addEventListener('pointerdown', (e) => {
+  sig.setPointerCapture(e.pointerId);
+  drawing = true;
+  const [x, y] = sigPoint(e);
+  sigCtx.strokeStyle = sigCtx.fillStyle = '#10204a';
+  sigCtx.lineWidth = 3.5;
+  sigCtx.lineCap = sigCtx.lineJoin = 'round';
+  sigCtx.beginPath();
+  sigCtx.arc(x, y, 1.75, 0, Math.PI * 2);
+  sigCtx.fill();
+  sigCtx.beginPath();
+  sigCtx.moveTo(x, y);
+});
+sig.addEventListener('pointermove', (e) => {
+  if (!drawing) return;
+  const [x, y] = sigPoint(e);
+  sigCtx.lineTo(x, y);
+  sigCtx.stroke();
+});
+function endSig() {
+  if (!drawing) return;
+  drawing = false;
+  state.unterschrift = sig.toDataURL('image/png');
+  changed();
+}
+sig.addEventListener('pointerup', endSig);
+sig.addEventListener('pointercancel', endSig);
+$('sigClear').addEventListener('click', () => {
+  sigCtx.clearRect(0, 0, sig.width, sig.height);
+  state.unterschrift = null;
+  changed();
+});
+async function applySignature() {
+  sigCtx.clearRect(0, 0, sig.width, sig.height);
+  if (!state.unterschrift) return;
+  try {
+    sigCtx.drawImage(await loadImage(state.unterschrift), 0, 0, sig.width, sig.height);
+    state.unterschrift = sig.toDataURL('image/png');
+  } catch {
+    state.unterschrift = null;
+  }
+}
+
+/* ---------- Word-Export ---------- */
+function dataUrlBytes(url) {
+  const bin = atob(url.slice(url.indexOf(',') + 1));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const FINISHED = {
+  gesendet: 'Die Word-Datei wurde weitergegeben.',
+  abgebrochen: 'Senden abgebrochen. Deine Angaben sind noch da.',
+  heruntergeladen: 'Die Word-Datei liegt in deinem Download-Ordner.',
+};
+if (canSend(WORD_TYPE, 'x.docx')) $('btnWord').textContent = 'Word senden an …';
+$('btnWord').addEventListener('click', async () => {
+  const missing = !state.vorname.trim() ? 'vorname' : !state.nachname.trim() ? 'nachname' : '';
+  if (missing) {
+    say('Trage zuerst deinen Vor- und Nachnamen ein.', true);
+    $(missing).focus();
+    return;
+  }
+  const bytes = window.LebenslaufDocx.build({
+    ...model(),
+    foto: fotoJpeg ? dataUrlBytes(fotoJpeg) : null,
+    unterschrift: state.unterschrift ? dataUrlBytes(state.unterschrift) : null,
+  });
+  say(FINISHED[await deliver(new Blob([bytes], { type: WORD_TYPE }), fileStem() + '.docx')]);
+});
+
+/* ---------- Stand als Datei ---------- */
+$('btnSave').addEventListener('click', async () => {
+  const data = JSON.stringify({ art: 'lebenslauf', version: 1, ...state });
+  const how = await deliver(new Blob([data], { type: 'application/json' }), fileStem() + '.json');
+  say(how === 'abgebrochen' ? FINISHED.abgebrochen
+    : 'Bewahre die Datei gut auf: Darin stehen deine Daten und dein Foto. Mit «Stand laden» arbeitest du weiter.');
+});
+$('fileLoad').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (hasContent() && !confirm('Der aktuelle Stand wird durch die Datei ersetzt. Weiter?')) return;
+  try {
+    if (file.size > 20e6) throw new Error('zu gross');
+    const raw = JSON.parse(await file.text());
+    if (raw.art !== 'lebenslauf') throw new Error('falsche Datei');
+    state = normalize(raw);
+    await applyAll();
+    saveLocal();
+    say('Dein Stand wurde geladen.');
+  } catch {
+    say('Diese Datei konnte nicht geladen werden. Wähle eine Datei, die du hier gesichert hast.', true);
+  }
+});
+$('btnClear').addEventListener('click', async () => {
+  if (!confirm('Alle Angaben, das Foto und die Unterschrift in diesem Browser löschen?')) return;
+  try { localStorage.removeItem(KEY); } catch { /* nichts gespeichert */ }
+  state = blank();
+  await applyAll();
+  say('Alles gelöscht.');
+});
+document.querySelectorAll('label.filebtn').forEach((l) => {
+  l.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      l.querySelector('input').click();
+    }
+  });
+});
+
+/* ---------- Start ---------- */
+async function applyAll() {
+  fillInputs();
+  await applySignature();
+  await applyFoto();
+}
+(async () => {
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored) state = normalize(JSON.parse(stored));
+  } catch {
+    state = blank();
+  }
+  await applyAll();
+})();
+</script>
+</body>
+</html>

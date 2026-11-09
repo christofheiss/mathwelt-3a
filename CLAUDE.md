@@ -26,6 +26,7 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 | `js/crypto.js` | Web Crypto: Token-Format/Normalisierung, `tokenHash`, `studentKey` (PBKDF2), `sealSave`/`openSaveAsStudent`/`openSaveAsTeacher`, `makeDongle`/`openDongle`, RSA-Schlüssel |
 | `js/config.js` | **öffentlich**: RSA-Public-Key der Lehrperson + SHA-256-Hashes der gültigen Codes + `saveUrl` (Worker) und `dataRepo` |
 | `worker/worker.js`, `worker/README.md` | Cloudflare Worker fürs Online-Speichern: prüft den Code, schreibt nach `saves/<ID>.mw3a` im privaten Repo `mathwelt-3a-daten`, gibt den eigenen Stand über `POST /load` zurück; Einrichtung im README |
+| `lebenslauf/index.html` | Eigenständige Lebenslauf-Seite für das iPad, eine einzige Datei mit CSS und JS. Baut die Word-Datei ohne Bibliothek, gibt sie über `navigator.share` weiter («Senden an», braucht HTTPS), sonst Download. Hat nichts mit Spielstand oder Codes zu tun: Daten bleiben im Browser (`localStorage`) oder in einer eigenen `.json`-Datei, die Seite sperrt per CSP jeden Netzverkehr |
 | `lehrer.html`, `css/teacher.css`, `js/teacher.js` | Masterview: Dongle + Passwort entsperren, `.mw3a` laden (neuester Stand pro ID), Klassen-Kacheln pro LZ, Tabelle pro ID × Gebäude, Detail mit Aktivitäten-Log, CSV, neue Tokens, Namen nur im Dongle, Dongle neu speichern |
 
 ### Sicherheitsmodell
