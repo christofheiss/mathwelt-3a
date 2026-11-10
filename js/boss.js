@@ -8,15 +8,6 @@ const BYID = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export const BOSSES = {
-  gl: {
-    name: 'Gleichungs-Golem', short: 'Golem',
-    intro: 'Der Golem aus Stein bewacht das Dorf. Auf seiner Brust leuchtet ein Gleichheitszeichen. Nur wer Gleichungen beherrscht, bringt ihn ins Wanken.',
-    phases: [
-      { name: 'Die Waage-Fäuste', b: ['waage', 'umkehr'], text: 'Der Golem schwingt seine Waage-Fäuste. Löse Gleichungen mit Umformungen!' },
-      { name: 'Der Klammer-Panzer', b: ['klammer', 'probe'], text: 'Er hüllt sich in einen Klammer-Panzer. Löse Klammern auf und mache die Probe!' },
-      { name: 'Der Trick-Spiegel', b: ['detektiv', 'raetsel'], text: 'Er zeigt dir falsche Lösungswege und knifflige Rätsel. Durchschaue seine Tricks!' },
-    ],
-  },
   aj: {
     name: 'Nebel-Orakel', short: 'Orakel',
     intro: 'Das Orakel hüllt das Dorf in einen Nebel aus falschen Zahlen. Mit Daten und kritischen Fragen lichtest du ihn.',
@@ -24,6 +15,15 @@ export const BOSSES = {
       { name: 'Die Pyramiden-Maske', b: ['pyramide'], text: 'Das Orakel versteckt sich hinter Alterspyramiden. Lies sie genau!' },
       { name: 'Der Prozent-Nebel', b: ['prozent', 'zeit'], text: 'Der Nebel verwechselt absolute und relative Zahlen. Rechne mit Anteilen und Graphen!' },
       { name: 'Die Falschmeldungen', b: ['fakten'], text: 'Jetzt verbreitet es Schlagzeilen. Prüfe jede Aussage mit Daten!' },
+    ],
+  },
+  gl: {
+    name: 'Gleichungs-Golem', short: 'Golem',
+    intro: 'Der Golem aus Stein bewacht das Dorf. Auf seiner Brust leuchtet ein Gleichheitszeichen. Nur wer Gleichungen beherrscht, bringt ihn ins Wanken.',
+    phases: [
+      { name: 'Die Waage-Fäuste', b: ['waage', 'umkehr'], text: 'Der Golem schwingt seine Waage-Fäuste. Löse Gleichungen mit Umformungen!' },
+      { name: 'Der Klammer-Panzer', b: ['klammer', 'probe'], text: 'Er hüllt sich in einen Klammer-Panzer. Löse Klammern auf und mache die Probe!' },
+      { name: 'Der Trick-Spiegel', b: ['detektiv', 'raetsel'], text: 'Er zeigt dir falsche Lösungswege und knifflige Rätsel. Durchschaue seine Tricks!' },
     ],
   },
 };

@@ -7,7 +7,7 @@ export const CONFIG = {
   dataRepo: 'christofheiss/mathwelt-3a-daten',
   teacherPublicKey: {"kty":"RSA","n":"vPjh6itlZhx2CpFHwY3HpyQJjsxJ58VfE9n0aHagQVaXY09EF28hGumu-uaH322S60sLhV1tZaW5Jtixy_Qvl4QnapzLuy9B8-2vVNLUdcai3w4PAaokQC6Z5ImB7ZUNvh9tdz2YHHz3ekKhVtUz_CCQTGEFLabYZ_RPBXoFPd1vmVKFWpFq6aQurVLWEKX8wxAr1VXmXzND0UEOrn8iemlqkj6KQGr6X0ZnEc2VckzZdbLfNfXIbQ98JDRepJImNXB3h67jpc25DvJxC52sKwRnyn-qXVwJ9GCO9dAYa8JkpXF8PZVmd2pbnj2nDvtx_AUMQSL9BHRaG7G0-UL7Hw","e":"AQAB","alg":"RSA-OAEP-256","ext":true,"key_ops":["encrypt"]},
   // Freigabe, solange der Worker nichts anderes meldet (gl = Gleichungen, aj = Alt und Jung)
-  worlds: { gl: true, aj: false },
+  worlds: { aj: true, gl: false },   // zuerst LU 10 Alt und Jung, dann LU 11 Gleichungen
   tokenHashes: [
     '094a6afafbe7a39485a2bf92e7714387db9e7a6d3291c2db88dfea9162f20e6a', // 3A01
     '17a2dfe159aac2694d6c640ae3c11d7adf2aa26c53696c0886ce53155df7ea6a', // 3A02

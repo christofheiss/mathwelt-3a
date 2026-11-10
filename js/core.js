@@ -243,15 +243,15 @@ export function gradeProbe(S, cur, value) {
 
 // ---------- Abzeichen pro Lernziel ----------
 // Abzeichen: 5 Aufgaben ab ★★ im ersten Versuch ohne Lösungshilfe. Gold: 3 solche Aufgaben auf ★★★.
-export const BADGES = [
-  { lz: 'LZ1', name: 'Umform-Ass', icon: '⚖️', w: 'gl', goal: 'Gleichungen mit Umformungen lösen' },
-  { lz: 'LZ2', name: 'Proben-Profi', icon: '✅', w: 'gl', goal: 'Lösungen mit der Probe prüfen' },
-  { lz: 'LZ3', name: 'Rätselknacker/in', icon: '🧩', w: 'gl', goal: 'Sachsituationen in Gleichungen übersetzen' },
-  { lz: 'LZ4', name: 'Fehlerdetektiv/in', icon: '🔍', w: 'gl', goal: 'Schritte notieren und Fehler finden' },
+export const BADGES = [   // Anzeige in der Reihenfolge des Unterrichts: zuerst LU 10 (LZ5–LZ8)
   { lz: 'LZ5', name: 'Pyramiden-Leser/in', icon: '📊', w: 'aj', goal: 'Alterspyramiden lesen' },
   { lz: 'LZ6', name: 'Prozent-Profi', icon: '％', w: 'aj', goal: 'Absolute und relative Zahlen' },
   { lz: 'LZ7', name: 'Trend-Späher/in', icon: '📈', w: 'aj', goal: 'Entwicklungen aus Graphen lesen' },
   { lz: 'LZ8', name: 'Faktenchecker/in', icon: '📰', w: 'aj', goal: 'Aussagen prüfen, kritisch fragen' },
+  { lz: 'LZ1', name: 'Umform-Ass', icon: '⚖️', w: 'gl', goal: 'Gleichungen mit Umformungen lösen' },
+  { lz: 'LZ2', name: 'Proben-Profi', icon: '✅', w: 'gl', goal: 'Lösungen mit der Probe prüfen' },
+  { lz: 'LZ3', name: 'Rätselknacker/in', icon: '🧩', w: 'gl', goal: 'Sachsituationen in Gleichungen übersetzen' },
+  { lz: 'LZ4', name: 'Fehlerdetektiv/in', icon: '🔍', w: 'gl', goal: 'Schritte notieren und Fehler finden' },
 ];
 export const BADGE_NEED = { silver: 5, gold: 3 }, BADGE_COINS = { silver: 15, gold: 25 };
 const hasLz = (b, lz) => b.lz.split(' · ').includes(lz);

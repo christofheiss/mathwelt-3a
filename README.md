@@ -1,6 +1,6 @@
 # MathWelt 3A
 
-Ein Lernspiel in einer 3D-Blockwelt für die 3. Sek (Niveau A), aufgebaut auf **mathbuch 3, LU 11 «Gleichungen lösen»** und **LU 10 «Alt und Jung»**.
+Ein Lernspiel in einer 3D-Blockwelt für die 3. Sek (Niveau A), aufgebaut auf **mathbuch 3, LU 10 «Alt und Jung»** und **LU 11 «Gleichungen lösen»** (in dieser Reihenfolge, mit je einer Prüfung am Ende).
 
 Die Schülerinnen und Schüler laufen durch ein Dorf, betreten Gebäude und lösen dort Aufgaben. Für richtige Lösungen gibt es Coins, mit denen sie im Level-Turm ein höheres Level kaufen.
 
@@ -10,7 +10,7 @@ Die Schülerinnen und Schüler laufen durch ein Dorf, betreten Gebäude und lös
 
 Neu (November 2026): Freigabe pro Gebäude, Abzeichen, Probe-Bonus, Shop, Klassen-Leuchtturm und ein Boss pro Welt. Dafür muss der Worker-Code bei Cloudflare neu eingesetzt werden (`worker/README.md`, «Worker-Code aktualisieren»). Mit dem alten Worker funktionieren Spiel und App weiter, nur die neuen Schalter in der Masterview werden nicht gespeichert.
 
-Es gibt zwei Welten: **Gleichungen** (LU 11) und **Alt und Jung** (LU 10). Die Lehrperson schaltet sie in der Masterview frei. Coins und Level gelten in beiden Welten.
+Es gibt zwei Welten: **Alt und Jung** (LU 10, Woche 1–2) und **Gleichungen** (LU 11, Woche 3–4). Die Lehrperson schaltet sie in der Masterview frei. Coins und Level gelten in beiden Welten.
 
 ## Zwei Zugänge
 
@@ -47,7 +47,7 @@ Jedes Gebäude hat drei Niveaus: ★ Grundanspruch (5 Coins), ★★ Standard (1
 
 ## Boss-Kampf
 
-Jede Welt hat in der Arena (Karte: B) einen Boss: den **Gleichungs-Golem** (LU 11) und das **Nebel-Orakel** (LU 10). Gekämpft wird nur mit Aufgaben, in drei Phasen:
+Jede Welt hat in der Arena (Karte: B) einen Boss: das **Nebel-Orakel** (LU 10) und den **Gleichungs-Golem** (LU 11). Gekämpft wird nur mit Aufgaben, in drei Phasen:
 
 | Boss | Phase 1 | Phase 2 | Phase 3 |
 |---|---|---|---|
@@ -58,27 +58,30 @@ Jede Welt hat in der Arena (Karte: B) einen Boss: den **Gleichungs-Golem** (LU 1
 - Jede Aufgabe zählt wie im Gebäude (Coins, Statistik, Abzeichen). Sieg: 50 Coins beim ersten Mal, danach 10.
 - Gesperrte Gebäude kommen im Kampf nicht vor.
 - Der Boss erwacht, wenn die Lehrperson ihn in der Masterview weckt, oder für ein einzelnes Kind ab 3 Abzeichen der Welt.
-- Die Masterview zeigt pro Kind richtig/falsch pro Phase. So sieht man vor der Postenarbeit in L18, wer wo hängen bleibt.
+- Die Masterview zeigt pro Kind richtig/falsch pro Phase. So sieht man vor der Repetition (L9 bzw. L18), wer wo hängen bleibt.
 - In der Lern-App gibt es denselben Kampf mit einem Bild statt der 3D-Figur.
 
-## Einsatz nach Feinplanung
+## Einsatz nach Grobplanung
 
-Alle Gebäude sind offen, bis die Lehrperson sie in der Masterview sperrt. Vorschlag, um die Gebäude im Takt der Lektionen zu öffnen (vor L1 alles ausser Waage-Werkstatt und Rätsel-Bibliothek sperren):
+Reihenfolge: zuerst **LU 10** (L1–L10, Prüfung LU 10 in L10), dann **LU 11** (L11–L20, Prüfung LU 11 in L19). Alle Gebäude sind offen, bis die Lehrperson sie in der Masterview sperrt. Vor L1: «Alles zurücksetzen», Welt Alt und Jung offen (nur Pyramiden-Museum), Welt Gleichungen gesperrt.
 
-| Lektion | Unterricht | in der Masterview öffnen |
+| Lektion | Unterricht | in der Masterview |
 |---|---|---|
-| W1 Mo L1–L2 | Zaubertrick, Zahlenrätsel, Waagemodell | Waage-Werkstatt, Rätsel-Bibliothek (★ Zaubertrick und Zahlenrätsel) |
-| W1 Mi L3 | ax + b = c | Umkehr-Turm (MathWelt als Zusatz für schnelle SuS) |
-| W1 Fr L4–L5 | Probe, x auf beiden Seiten (Lernbüro) | Proben-Labor, Klammer-Mine (★) |
-| W2 Mo L6–L7 | Klammern, Fehlerdetektiv | Detektiv-Büro (Klammer-Mine ★★ ist schon offen) |
-| W2 Mi L8 | Sachsituationen → Gleichung | Rätsel-Bibliothek ★★ (schon offen) |
-| W2 Fr L9–L10 | Sachaufgaben, S. 33 A10, Repetition | ★★★ Abo-Vergleich und A10 · in L10 den **Golem wecken** |
-| W3 Mo L11–L12 | Einstieg Alt und Jung, Alterspyramiden | Welt **Alt und Jung**, nur Pyramiden-Museum offen |
-| W3 Mi L13 | absolut und relativ | Prozent-Markt |
-| W3 Fr L14–L15 | Daten darstellen, Entwicklungen | Zeit-Observatorium |
-| W4 Mo L16–L17 | Aussagen prüfen, Schlagzeilen | Faktencheck-Redaktion |
-| W4 Mi L18 | Repetition (Posten) | **Orakel wecken**, Posten «MathWelt» nach Boss-Statistik zuteilen |
-| W4 Fr L19–L20 | Prüfung, Reflexion | Rückmeldung zu MathWelt einholen; Klassen-Coins ein letztes Mal übertragen |
+| W1 Mo L1–L2 | Schätzlinie, Daten erheben · Alterspyramiden | Token-Karten austeilen · Pyramiden-Museum |
+| W1 Mi L3 | absolut und relativ | Prozent-Markt öffnen |
+| W1 Fr L4–L5 | eigene Daten darstellen · Entwicklungen | (L4 bewusst ohne) · Zeit-Observatorium öffnen |
+| W2 Mo L6–L7 | Aussagen prüfen · Schlagzeilen | Faktencheck-Redaktion öffnen · **Orakel wecken** |
+| W2 Mi L8 | formative Lernkontrolle LU 10 | Kacheln LZ5–LZ8 und Boss-Statistik ansehen |
+| W2 Fr L9 | Repetition LU 10 (Posten) | Posten «MathWelt» nach Boss-Phase zuteilen |
+| W2 Fr L10 | **Prüfung LU 10** | – |
+| W3 Mo L11–L12 | Zaubertrick, Waagemodell · ax + b = c | Welt **Gleichungen** öffnen: Waage-Werkstatt, Rätsel-Bibliothek · Umkehr-Turm |
+| W3 Mi L13 | Probe | Proben-Labor |
+| W3 Fr L14–L15 | x auf beiden Seiten (Lernbüro) · Klammern | Klammer-Mine (★ Station im Lernbüro, ★★ ab L15) |
+| W4 Mo L16–L17 | Fehlerdetektiv · Sachsituationen und Sachaufgaben | Detektiv-Büro · ★★★ Abo-Vergleich und S. 33 A10 · **Golem wecken** |
+| W4 Mi L18 | Repetition LU 11 (Posten) | Posten «MathWelt» nach Boss-Phase zuteilen |
+| W4 Fr L19–L20 | **Prüfung LU 11** · Reflexion | Feedback zu MathWelt, CSV, danach «Alles zurücksetzen» |
+
+Die Welt Alt und Jung bleibt in Woche 3–4 offen, so kann man LU 10 weiter repetieren.
 
 Nach jeder Lektion mit MathWelt: Spielstände laden und «Klassen-Coins übertragen», damit der Leuchtturm wächst.
 

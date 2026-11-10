@@ -1,7 +1,7 @@
 # MathWelt 3A – Kontext für Claude Code
 
 Lernspiel für die Klasse 3A (Sek 1, Niveau A, 14 SuS), Schule Neuenkirch, Profilpraktikum PH Luzern im Januar 2027.
-Autor/Lehrperson: Christof Heiss. Inhalt: **mathbuch 3 (Klett), LU 11 «Gleichungen lösen» (S. 30–33) und LU 10 «Alt und Jung» (S. 26–29)**.
+Autor/Lehrperson: Christof Heiss. Inhalt: **mathbuch 3 (Klett), LU 10 «Alt und Jung» (S. 26–29) und LU 11 «Gleichungen lösen» (S. 30–33)**. Reihenfolge im Unterricht: LU 10 in L1–L10 (Prüfung L10), LU 11 in L11–L20 (Prüfung L19); Freigabeplan im README. `WORLDS`, `BUILDINGS`, `BOSSES` und `BADGES` stehen darum mit LU 10 zuerst.
 Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mit Tastatur und Touchpad.
 
 ## Anforderungen der Lehrperson
@@ -38,7 +38,7 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 - Bekannte Grenze: Lösungen werden im Client erzeugt/geprüft (Spiel = Üben, nicht Beurteilen). Der GitHub-Schreibschlüssel liegt nur als Secret im Worker, nie im Client.
 
 ### Welten freischalten
-- Freigabe liegt als `worlds.json` im Daten-Repo; `CONFIG.worlds` ist der Standard (Gleichungen offen, Alt und Jung gesperrt), das Spiel merkt sich den letzten Stand lokal.
+- Freigabe liegt als `worlds.json` im Daten-Repo; `CONFIG.worlds` ist der Standard (Alt und Jung offen, Gleichungen gesperrt), das Spiel merkt sich den letzten Stand lokal.
 - Weitere Schlüssel in `worlds.json`: Gebäude-IDs (`false` = gesperrt, fehlt = offen), `boss_gl`/`boss_aj` (`true` = für alle wach), `klasse` (Coin-Summe der Klasse, ganze Zahl). Erlaubte Schlüssel stehen in `SWITCH_IDS` im Worker: bei neuen Gebäuden dort ergänzen.
 - Spiel und App fragen die Freigabe alle 20 s (Weltauswahl) bzw. 60 s (im Spiel) ab.
 - Reset: `POST /reset` (Dongle-Challenge) ersetzt den Branch des Daten-Repos durch einen Commit ohne Vorgänger mit nur `worlds.json` (`reset` = Zeitpunkt, `klasse` = 0). Spielstand-Dateien tragen `born` (= `S.created`); der Worker lehnt `born < reset` mit 409 ab, `core.isStale` verwirft solche Stände im Client. Neue Stände beginnen nach `reset` (auch bei falscher Geräteuhr).
