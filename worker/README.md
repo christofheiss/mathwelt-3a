@@ -57,3 +57,11 @@ Mit der Karte 3A99 spielen und «Speichern» klicken. Es muss «Spielstand onlin
 Bei Änderungen an `worker/worker.js`: bei Cloudflare den Worker öffnen → **Edit code** → alles durch den neuen Code ersetzen → **Deploy**. Die Variablen und das Secret bleiben erhalten. Die Freischaltung der Welten braucht keine zusätzliche Einstellung.
 
 Seit November 2026 speichert der Worker in `worlds.json` neben den Welten auch die Schalter pro Gebäude (`waage`, `klammer`, …), den Boss pro Welt (`boss_gl`, `boss_aj`) und die Coin-Summe der Klasse (`klasse`). Dafür den neuen Code einsetzen. Mit dem alten Code meldet die Masterview, dass die Änderung nicht übernommen wurde.
+
+## Alles zurücksetzen
+
+In der Masterview unten: **Alles zurücksetzen …** → «LEER» eintippen. Der Worker ersetzt den Branch im Daten-Repo durch einen neuen Commit ohne Vorgänger, der nur `worlds.json` enthält (mit `reset` = Zeitpunkt und `klasse` = 0). Die Spielstände sind damit auch aus dem Verlauf des Branches verschwunden. GitHub kann nicht mehr erreichbare Commits intern noch eine Weile aufbewahren. Wer absolut sicher sein will, löscht das Repo und legt es neu an (siehe Schritt 1).
+
+Danach nimmt der Worker keine Spielstände mehr an, die vor dem Reset begonnen wurden (Antwort 409). Spiel und App verwerfen solche Stände auch selbst: beim Anmelden, beim Laden einer Datei und in offenen Fenstern innert etwa einer Minute.
+
+Der Schreib-Schlüssel braucht dafür keine zusätzlichen Rechte (Contents: Read and write genügt).

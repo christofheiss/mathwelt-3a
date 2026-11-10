@@ -52,8 +52,15 @@ export async function storeLocal(S, sKey) {
 export async function uploadSave(S, token, sKey) {
   const file = await K.sealSave(S, sKey, CONFIG.teacherPublicKey);
   const res = await fetch(CONFIG.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, file }) });
+  if (res.status === 409) { const e = new Error('Zurückgesetzt'); e.code = 'reset'; throw e; }
   if (!res.ok) throw new Error('HTTP ' + res.status);
 }
+
+// ---------- Reset durch die Lehrperson ----------
+// worlds.reset = Zeitpunkt des Resets. Ein Spielstand, der vorher begonnen wurde, gilt nicht mehr.
+export const isStale = (st, worlds) => !!st && !!worlds?.reset && (st.created || 0) < worlds.reset;
+export function forgetLocal(id) { try { localStorage.removeItem(storageKey(id)); } catch { } }
+export const RESET_MSG = 'Deine Lehrperson hat die MathWelt zurückgesetzt. Alle beginnen neu. Bitte melde dich nochmals an.';
 export async function downloadSaveFile(S, sKey) {
   const file = await K.sealSave(S, sKey, CONFIG.teacherPublicKey);
   const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -67,6 +74,7 @@ export async function readSaveFile(file, token, sKey) {
   if (data.app !== 'mathwelt-3a') throw new Error('Das ist keine Spielstand-Datei von MathWelt 3A.');
   if (data.id !== id) throw new Error(`Diese Datei gehört zur ID ${data.id}, du bist mit ${id} angemeldet.`);
   const st = await K.openSaveAsStudent(data, sKey);
+  if (isStale(st, knownWorlds())) throw new Error('Diese Datei stammt von vor dem Zurücksetzen durch deine Lehrperson. Starte ein neues Spiel.');
   migrate(st);
   st.sessions.push({ start: Date.now(), end: Date.now() });
   return st;
@@ -94,12 +102,17 @@ export async function signIn(raw) {
   if (token.length < 10) throw new Error('Bitte gib deinen ganzen Code ein (z. B. 3A07-K7QM-X2PD-9HTR).');
   if (!CONFIG.tokenHashes.includes(await K.tokenHash(token))) throw new Error('Dieser Code ist nicht gültig. Kontrolliere die Buchstaben oder frage deine Lehrperson.');
   const sKey = await K.studentKey(token), id = K.tokenId(token);
+  const { worlds } = await fetchWorlds();
   let local = null;
   try { const stored = localStorage.getItem(storageKey(id)); if (stored) local = await K.openSaveAsStudent(JSON.parse(stored), sKey); } catch (e) { console.warn(e); }
-  const online = await fetchOnlineSave(token, sKey, id);
+  if (isStale(local, worlds)) { forgetLocal(id); local = null; }   // Stand von vor dem Reset
+  let online = await fetchOnlineSave(token, sKey, id);
+  if (isStale(online, worlds)) online = null;
   const fromOnline = !!online && (!local || lastActivity(online) > lastActivity(local));
   const found = fromOnline ? online : local;
   const S = found || newState(id);
+  // Falsch gehende Uhr am Gerät: Ein neuer Stand muss nach dem Reset beginnen, sonst gälte er sofort als veraltet
+  if (!found && worlds?.reset && S.created <= worlds.reset) S.created = worlds.reset + 1;
   migrate(S);
   S.sessions.push({ start: Date.now(), end: Date.now() });
   if (fromOnline) await storeLocal(S, sKey);

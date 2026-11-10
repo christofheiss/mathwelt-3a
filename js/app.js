@@ -13,6 +13,12 @@ const areaOf = (b) => Object.values(WORLDS).find(w => w.lu === b.lu);
 let token = null, sKey = null, S = null, current = null;
 let openWorlds = C.knownWorlds(), worldsChecked = false, worldsTimer = null, shownHash = null;
 
+// Die Lehrperson hat alles zurückgesetzt: lokalen Stand vergessen und neu anmelden
+function resetByTeacher() {
+  const id = S?.id; S = null; if (id) C.forgetLocal(id);
+  alert(C.RESET_MSG); history.replaceState(null, '', location.pathname); location.reload();
+}
+
 // ---------- Anmeldung ----------
 async function tryLogin(raw) {
   const err = $('#loginError'), btn = $('#loginBtn');
@@ -37,13 +43,14 @@ function start() {
 async function pollWorlds() {
   const before = JSON.stringify(openWorlds);
   ({ worlds: openWorlds, checked: worldsChecked } = await C.fetchWorlds());
+  if (C.isStale(S, openWorlds)) return resetByTeacher();
   if (viewName() === 'themen' && JSON.stringify(openWorlds) !== before) route();
   else if (viewName() === 'themen') $('#worldsNote').textContent = worldsNote();
 }
 const worldsNote = () => worldsChecked ? '' : 'Die aktuelle Freigabe konnte nicht geprüft werden. Es wird der letzte bekannte Stand angezeigt.';
 
 // ---------- Speichern ----------
-const saveLocal = () => C.storeLocal(S, sKey);
+const saveLocal = async () => { if (S) await C.storeLocal(S, sKey); };
 async function downloadSave() {
   await saveLocal();
   await C.downloadSaveFile(S, sKey);
@@ -60,6 +67,7 @@ async function saveOnline() {
     S.unsavedSince = 0; await saveLocal(); updateTop();
     toast('Lernstand online gespeichert.');
   } catch (e) {
+    if (e.code === 'reset') return resetByTeacher();
     console.warn('Online-Speichern nicht möglich', e);
     await downloadSave();
     toast('Online-Speichern hat nicht geklappt. Dein Lernstand wurde als Datei heruntergeladen: Gib sie bitte ab.', 8000);

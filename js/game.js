@@ -43,12 +43,19 @@ async function saveOnline() {
     S.unsavedSince = 0; await saveLocal(); updateHud();
     toast('Spielstand online gespeichert.');
   } catch (e) {
+    if (e.code === 'reset') return resetByTeacher();
     console.warn('Online-Speichern nicht möglich', e);
     await downloadSave();
     toast('Online-Speichern hat nicht geklappt. Dein Spielstand wurde als Datei heruntergeladen: Gib sie bitte ab.', 8000);
   } finally { btn.disabled = false; btn.textContent = 'Speichern'; }
 }
 const tokenId = () => K.tokenId(token);
+
+// Die Lehrperson hat alles zurückgesetzt: lokalen Stand vergessen und neu anmelden
+function resetByTeacher() {
+  const id = S?.id; S = null; if (id) C.forgetLocal(id);
+  alert(C.RESET_MSG); location.reload();
+}
 
 // ---------- Anmeldung ----------
 async function tryLogin(raw) {
@@ -80,6 +87,7 @@ let openWorlds = C.knownWorlds(), worldsChecked = false, worldsTimer = null;
 async function refreshWorlds() {
   const before = JSON.stringify(openWorlds);
   ({ worlds: openWorlds, checked: worldsChecked } = await C.fetchWorlds());
+  if (C.isStale(S, openWorlds)) return resetByTeacher();
   if (worldData && JSON.stringify(openWorlds) !== before) applyWorlds();
 }
 // Neue Freigabe oder neue Coins der Klasse: Beschriftungen und Leuchtturm nachführen

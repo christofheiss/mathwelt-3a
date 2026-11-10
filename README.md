@@ -82,6 +82,8 @@ Alle Gebäude sind offen, bis die Lehrperson sie in der Masterview sperrt. Vorsc
 
 Nach jeder Lektion mit MathWelt: Spielstände laden und «Klassen-Coins übertragen», damit der Leuchtturm wächst.
 
+Vor dem Start (oder nach Testläufen) setzt **Alles zurücksetzen** in der Masterview alles auf leer: Spielstände samt Verlauf im Daten-Repo, Klassen-Coins und die Stände auf den Geräten. Codes, Dongle und Namen bleiben.
+
 ## Datenschutz und Sicherheit
 
 - Die Schülerinnen und Schüler melden sich nur mit einer **ID** (z. B. 3A07) und einem persönlichen Code an. Namen kommen im Spiel nicht vor.

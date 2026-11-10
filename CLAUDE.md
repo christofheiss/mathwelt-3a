@@ -41,6 +41,7 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 - Freigabe liegt als `worlds.json` im Daten-Repo; `CONFIG.worlds` ist der Standard (Gleichungen offen, Alt und Jung gesperrt), das Spiel merkt sich den letzten Stand lokal.
 - Weitere Schlüssel in `worlds.json`: Gebäude-IDs (`false` = gesperrt, fehlt = offen), `boss_gl`/`boss_aj` (`true` = für alle wach), `klasse` (Coin-Summe der Klasse, ganze Zahl). Erlaubte Schlüssel stehen in `SWITCH_IDS` im Worker: bei neuen Gebäuden dort ergänzen.
 - Spiel und App fragen die Freigabe alle 20 s (Weltauswahl) bzw. 60 s (im Spiel) ab.
+- Reset: `POST /reset` (Dongle-Challenge) ersetzt den Branch des Daten-Repos durch einen Commit ohne Vorgänger mit nur `worlds.json` (`reset` = Zeitpunkt, `klasse` = 0). Spielstand-Dateien tragen `born` (= `S.created`); der Worker lehnt `born < reset` mit 409 ab, `core.isStale` verwirft solche Stände im Client. Neue Stände beginnen nach `reset` (auch bei falscher Geräteuhr).
 - Masterview ändert sie über den Worker: Der Worker verschlüsselt eine Zufallszahl mit dem Public Key, nur der Dongle kann sie lösen. Kein zusätzliches Secret nötig.
 - Sperre wird im Browser durchgesetzt, ist also ein Unterrichtsablauf und kein Schutz gegen versierte SuS.
 

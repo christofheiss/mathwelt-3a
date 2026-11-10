@@ -56,6 +56,12 @@
   </section>
   <section id="detail" hidden></section>
 
+  <section class="danger">
+    <h2>Alles zurücksetzen</h2>
+    <p class="small">Löscht alle online gespeicherten Spielstände samt Verlauf im Daten-Repo und setzt die Klassen-Coins auf 0. Jedes Kind beginnt beim nächsten Anmelden neu, auch auf Geräten mit einem alten Stand. Codes, Dongle und Namen bleiben gültig.</p>
+    <button id="resetBtn" class="dangerbtn">Alles zurücksetzen …</button>
+  </section>
+
   <div id="tokensDlg" class="overlay" hidden>
     <div class="window narrow">
       <header><h2>Neue Tokens erzeugen</h2><button class="x" id="tokClose">Schliessen</button></header>
@@ -82,6 +88,23 @@
       <label>Passwort wiederholen <input id="pw2" type="password" autocomplete="new-password"></label>
       <p id="dgError" class="error"></p>
       <div class="actions"><button class="primary" id="dgSave">Dongle herunterladen</button></div>
+    </div>
+  </div>
+  <div id="resetDlg" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2>Alles zurücksetzen</h2><button class="x" id="rsClose">Abbrechen</button></header>
+      <p><b>Das lässt sich nicht rückgängig machen.</b> Gelöscht werden:</p>
+      <ul>
+        <li>alle Spielstände im Daten-Repo, auch der Verlauf (die alten Commits)</li>
+        <li>die Coins der Klasse (Leuchtturm wieder auf Stufe 0)</li>
+        <li>die Spielstände auf den Geräten der Klasse: Sie werden beim nächsten Anmelden verworfen.</li>
+      </ul>
+      <p>Bleiben erhalten: Codes, Dongle, Namen und Spielstand-Dateien, die abgegeben oder heruntergeladen wurden.</p>
+      <p><button id="rsCsv">Vorher CSV exportieren</button> <span class="small">(Lade zuerst die Online-Spielstände, sonst ist die CSV leer.)</span></p>
+      <label class="check"><input id="rsKeep" type="checkbox" checked> Freigabe behalten (Welten, Gebäude, Boss)</label>
+      <label>Zum Bestätigen <b>LEER</b> eintippen <input id="rsConfirm" type="text" autocomplete="off" spellcheck="false"></label>
+      <p id="rsError" class="error"></p>
+      <div class="actions"><button id="rsGo" class="dangerbtn" disabled>Endgültig zurücksetzen</button></div>
     </div>
   </div>
 </main>

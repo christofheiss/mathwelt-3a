@@ -53,7 +53,7 @@ export async function sealSave(data, sKey, teacherPublicJwk) {
   const forStudent = await aesEncrypt(sKey, raw);
   const pub = await S.importKey('jwk', teacherPublicJwk, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
   const forTeacher = b64.from(await S.encrypt({ name: 'RSA-OAEP' }, pub, raw));
-  return { app: 'mathwelt-3a', v: 1, id: data.id, saved: data.lastSave, body, kS: forStudent, kT: forTeacher };
+  return { app: 'mathwelt-3a', v: 1, id: data.id, saved: data.lastSave, born: data.created, body, kS: forStudent, kT: forTeacher };
 }
 export async function openSaveAsStudent(file, sKey) {
   const raw = await aesDecrypt(sKey, file.kS);

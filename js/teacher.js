@@ -305,3 +305,30 @@ $('#dgSave').onclick = async () => {
   download(new Blob([JSON.stringify(file)], { type: 'application/json' }), 'MathWelt3A_Lehrer.dongle.mw3akey');
   $('#pw1').value = ''; $('#pw2').value = ''; $('#dongleDlg').hidden = true;
 };
+
+// ---------- Alles zurücksetzen ----------
+// Der Worker ersetzt das Daten-Repo durch einen leeren Stand (nur worlds.json mit reset-Zeitpunkt).
+$('#resetBtn').onclick = () => {
+  $('#rsConfirm').value = ''; $('#rsError').textContent = ''; $('#rsGo').disabled = true;
+  $('#resetDlg').hidden = false;
+  if (!CONFIG.saveUrl) $('#rsError').textContent = 'Ohne Worker (saveUrl in js/config.js) gibt es nichts online zu löschen.';
+};
+$('#rsClose').onclick = () => { $('#resetDlg').hidden = true; };
+$('#rsCsv').onclick = () => $('#csvBtn').click();
+$('#rsConfirm').oninput = () => { $('#rsGo').disabled = !CONFIG.saveUrl || $('#rsConfirm').value.trim().toUpperCase() !== 'LEER'; };
+$('#rsGo').onclick = async () => {
+  if ($('#rsConfirm').value.trim().toUpperCase() !== 'LEER') return;
+  const btn = $('#rsGo'); btn.disabled = true; btn.textContent = 'Setze zurück …'; $('#rsError').textContent = '';
+  try {
+    const { challenge, exp, ticket } = await workerJson('/worlds/challenge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const answer = await K.openChallenge(challenge, priv);
+    const res = await workerJson('/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer, exp, ticket, keepWorlds: $('#rsKeep').checked }) });
+    worldState = { ...CONFIG.worlds, ...res.worlds };
+    students.clear(); selected = null; $('#detail').hidden = true;
+    $('#resetDlg').hidden = true;
+    render(); renderWorldToggles();
+    $('#status').textContent = `Zurückgesetzt am ${new Date(res.worlds.reset).toLocaleString('de-CH')}. Das Daten-Repo ist leer. Die Klasse beginnt beim nächsten Anmelden neu (offene Spiele innert etwa einer Minute).`;
+  } catch (er) {
+    $('#rsError').textContent = /Fehler 40[14]/.test(er.message) ? 'Der Worker kennt «Zurücksetzen» noch nicht. Setze den neuen Worker-Code bei Cloudflare ein.' : (er.message || 'Zurücksetzen nicht möglich.');
+  } finally { btn.textContent = 'Endgültig zurücksetzen'; btn.disabled = $('#rsConfirm').value.trim().toUpperCase() !== 'LEER'; }
+};

@@ -6,6 +6,8 @@
 //   POST /worlds            Freigabe ändern, mit der gelösten Aufgabe
 // Und er gibt den eigenen, weiterhin verschlüsselten Spielstand zurück, damit es auf einem anderen Gerät weitergeht:
 //   POST /load              braucht den gültigen Code der Schülerin / des Schülers
+// Und er setzt alles zurück (nur mit dem Dongle):
+//   POST /reset             löscht alle Spielstände samt Git-Historie im Daten-Repo, Klassen-Coins auf 0
 // Einrichtung: siehe worker/README.md
 //
 // Variablen:  DATA_REPO       z. B. christofheiss/mathwelt-3a-daten
@@ -69,7 +71,8 @@ function cleanFile(file, id) {
   if (!file || file.app !== 'mathwelt-3a' || file.id !== id) return null;
   if (typeof file.saved !== 'number' || typeof file.kT !== 'string' || !isBox(file.body) || !isBox(file.kS)) return null;
   // Nur bekannte Felder ablegen
-  return { app: file.app, v: file.v, id: file.id, saved: file.saved, body: file.body, kS: file.kS, kT: file.kT };
+  const born = typeof file.born === 'number' ? file.born : undefined;   // Beginn des Spielstands (für den Reset)
+  return { app: file.app, v: file.v, id: file.id, saved: file.saved, born, body: file.body, kS: file.kS, kT: file.kT };
 }
 
 function toBase64(text) {
@@ -112,12 +115,13 @@ async function writeToGitHub(env, path, text, message) {
 function cleanWorlds(w) {
   const out = Object.fromEntries(SWITCH_IDS.filter(id => typeof w?.[id] === 'boolean').map(id => [id, w[id]]));
   if (Number.isInteger(w?.klasse) && w.klasse >= 0 && w.klasse < 1e7) out.klasse = w.klasse;
+  if (Number.isInteger(w?.reset) && w.reset > 0) out.reset = w.reset;   // Zeitpunkt des letzten Resets
   return out;
 }
 const b64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 
-async function readWorlds(env) {
-  if (worldsCache.worlds && Date.now() - worldsCache.at < WORLDS_CACHE_MS) return worldsCache.worlds;
+async function readWorlds(env, fresh = false) {
+  if (!fresh && worldsCache.worlds && Date.now() - worldsCache.at < WORLDS_CACHE_MS) return worldsCache.worlds;
   const res = await fetch(`https://api.github.com/repos/${env.DATA_REPO}/contents/worlds.json`, { headers: githubHeaders(env, 'application/vnd.github.raw+json') });
   if (!res.ok && res.status !== 404) throw new Error('GitHub ' + res.status);
   const worlds = res.ok ? cleanWorlds(JSON.parse(await res.text())) : {};
@@ -156,8 +160,39 @@ async function handleWorlds(request, env, headers, path) {
   try { body = JSON.parse(await request.text()); } catch { return reply(400, { error: 'json' }, headers); }
   if (!await checkAnswer(env, body)) return reply(403, { error: 'challenge' }, headers);
   const worlds = cleanWorlds(body.worlds);
+  delete worlds.reset;                                     // den Zeitpunkt des Resets ändert nur /reset
+  try { const old = await readWorlds(env, true); if (old.reset) worlds.reset = old.reset; }
+  catch { return reply(502, { error: 'github' }, headers); }
   try { await writeToGitHub(env, 'worlds.json', JSON.stringify(worlds), 'Welten: ' + JSON.stringify(worlds)); }
   catch { return reply(502, { error: 'github' }, headers); }
+  worldsCache = { at: Date.now(), worlds };
+  return reply(200, { worlds }, headers);
+}
+
+// ---------- Alles zurücksetzen ----------
+// Ersetzt den Branch durch einen neuen Commit ohne Vorgänger, der nur worlds.json enthält.
+// Damit sind die Spielstände auch aus der Historie des Branches verschwunden.
+async function handleReset(request, env, headers) {
+  if (request.method !== 'POST') return reply(405, { error: 'method' }, headers);
+  let body;
+  try { body = JSON.parse(await request.text()); } catch { return reply(400, { error: 'json' }, headers); }
+  if (!await checkAnswer(env, body)) return reply(403, { error: 'challenge' }, headers);
+  let worlds = {};
+  if (body.keepWorlds) { try { worlds = await readWorlds(env, true); } catch { return reply(502, { error: 'github' }, headers); } }
+  worlds = { ...cleanWorlds(worlds), klasse: 0, reset: Date.now() };
+  const api = `https://api.github.com/repos/${env.DATA_REPO}`, h = { ...githubHeaders(env), 'Content-Type': 'application/json' };
+  const gh = async (path, method = 'GET', data) => {
+    const res = await fetch(api + path, { method, headers: h, body: data ? JSON.stringify(data) : undefined });
+    if (!res.ok) throw new Error(`GitHub ${res.status} ${path}`);
+    return res.json();
+  };
+  try {
+    const { default_branch: branch } = await gh('');
+    const blob = await gh('/git/blobs', 'POST', { content: JSON.stringify(worlds), encoding: 'utf-8' });
+    const tree = await gh('/git/trees', 'POST', { tree: [{ path: 'worlds.json', mode: '100644', type: 'blob', sha: blob.sha }] });
+    const commit = await gh('/git/commits', 'POST', { message: 'Zurückgesetzt: alle Spielstände gelöscht', tree: tree.sha, parents: [] });
+    await gh(`/git/refs/heads/${branch}`, 'PATCH', { sha: commit.sha, force: true });
+  } catch (e) { return reply(502, { error: 'github', detail: String(e.message || e) }, headers); }
   worldsCache = { at: Date.now(), worlds };
   return reply(200, { worlds }, headers);
 }
@@ -185,6 +220,7 @@ export default {
     const path = new URL(request.url).pathname.replace(/\/+$/, '');
     if (path === '/worlds' || path === '/worlds/challenge') return handleWorlds(request, env, headers, path);
     if (path === '/load') return handleLoad(request, env, headers);
+    if (path === '/reset') return handleReset(request, env, headers);
     if (request.method !== 'POST') return reply(405, { error: 'method' }, headers);
 
     if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) return reply(413, { error: 'too_large' }, headers);
@@ -202,6 +238,10 @@ export default {
     const id = norm.slice(0, 4);
     const file = cleanFile(payload.file, id);
     if (!file) return reply(400, { error: 'file' }, headers);
+    // Spielstände, die vor dem letzten Reset begonnen wurden, nicht mehr annehmen
+    let reset = 0;
+    try { reset = (await readWorlds(env, true)).reset || 0; } catch { return reply(502, { error: 'github' }, headers); }
+    if (reset && !(file.born >= reset)) return reply(409, { error: 'reset', reset }, headers);
 
     try { await writeToGitHub(env, `saves/${id}.mw3a`, JSON.stringify(file), `Spielstand ${id}`); }
     catch { return reply(502, { error: 'github' }, headers); }
