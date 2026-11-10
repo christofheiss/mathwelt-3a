@@ -35,3 +35,8 @@ pre.hashes { background: #fff; border: 1px solid #aaa; padding: 8px; white-space
 .worldtoggle .st { font-weight: 700; }
 .worldtoggle .st.on { color: #2e7d32; }
 .worldtoggle .st.off { color: #a5432f; }
+.worldtoggle { flex-wrap: wrap; margin-top: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 4px 12px; }
+.chip { font-size: .85rem; padding: .2em .6em; border-width: 2px; }
+.chip.on { background: #e6f2e2; } .chip.off { background: #f8e5e3; color: #7a1d16; }
+.classpush { margin-top: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }

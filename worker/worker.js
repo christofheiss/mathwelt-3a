@@ -1,7 +1,7 @@
 // MathWelt 3A – Cloudflare Worker: nimmt verschlüsselte Spielstände an und legt sie
 // im privaten GitHub-Repo ab (saves/<ID>.mw3a). Der Worker kann die Spielstände nicht lesen.
 // Zudem verwaltet er die Freigabe der Welten (worlds.json im selben Repo):
-//   GET  /worlds            Freigabe lesen (öffentlich, enthält keine Daten von SuS)
+//   GET  /worlds            Freigabe lesen (öffentlich, enthält keine Daten von SuS, nur die Coin-Summe der Klasse)
 //   POST /worlds/challenge  Aufgabe, die nur mit dem privaten Schlüssel im Dongle lösbar ist
 //   POST /worlds            Freigabe ändern, mit der gelösten Aufgabe
 // Und er gibt den eigenen, weiterhin verschlüsselten Spielstand zurück, damit es auf einem anderen Gerät weitergeht:
@@ -18,6 +18,9 @@ const HASH_CACHE_MS = 5 * 60 * 1000;
 const WRITE_ATTEMPTS = 6;   // GitHub lehnt gleichzeitige Schreibzugriffe ab, z. B. am Ende einer Lektion
 
 const WORLD_IDS = ['gl', 'aj'];
+// Weitere Schalter in worlds.json: einzelne Gebäude, Boss pro Welt (alles true/false) und die Coins der Klasse (Zahl)
+const SWITCH_IDS = [...WORLD_IDS, 'boss_gl', 'boss_aj',
+  'waage', 'umkehr', 'probe', 'klammer', 'raetsel', 'detektiv', 'pyramide', 'prozent', 'zeit', 'fakten'];
 const WORLDS_CACHE_MS = 30 * 1000;
 const CHALLENGE_MS = 2 * 60 * 1000;
 
@@ -106,7 +109,11 @@ async function writeToGitHub(env, path, text, message) {
 }
 
 // ---------- Welten ----------
-const cleanWorlds = (w) => Object.fromEntries(WORLD_IDS.filter(id => typeof w?.[id] === 'boolean').map(id => [id, w[id]]));
+function cleanWorlds(w) {
+  const out = Object.fromEntries(SWITCH_IDS.filter(id => typeof w?.[id] === 'boolean').map(id => [id, w[id]]));
+  if (Number.isInteger(w?.klasse) && w.klasse >= 0 && w.klasse < 1e7) out.klasse = w.klasse;
+  return out;
+}
 const b64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 
 async function readWorlds(env) {

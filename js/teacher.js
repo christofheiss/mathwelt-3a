@@ -2,7 +2,8 @@
 import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
-import { titleOf } from './core.js';
+import { titleOf, BADGES, CLASS_STAGES, classInfo } from './core.js';
+import { BOSSES } from './boss.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -102,17 +103,41 @@ $('#clSave').onclick = async () => {
   $('#status').insertAdjacentHTML('beforeend', '<br><b>Wichtig:</b> Speichere jetzt den Dongle neu («Dongle speichern»), sonst musst du den Lese-Schlüssel beim nächsten Mal wieder eingeben.');
 };
 
-// ---------- Welten freischalten ----------
+// ---------- Freigabe: Welten, Gebäude, Boss, Klassen-Coins ----------
 let worldState = { ...CONFIG.worlds };
 function renderWorldToggles(busy = false) {
+  const dis = busy || !CONFIG.saveUrl ? 'disabled' : '';
   $('#worldToggles').innerHTML = Object.values(WORLDS).map(w => {
-    const on = !!worldState[w.id];
+    const on = !!worldState[w.id], bossOn = !!worldState['boss_' + w.id];
+    const chips = BUILDINGS.filter(b => b.lu === w.lu).map(b => {
+      const bOn = worldState[b.id] !== false;
+      return `<button class="chip ${bOn ? 'on' : 'off'}" data-k="${b.id}" title="${bOn ? 'Klicken zum Sperren' : 'Klicken zum Öffnen'}" ${dis}>${bOn ? '✓' : '✕'} ${esc(b.name)}</button>`;
+    }).join('');
     return `<div class="worldtoggle"><span><b>${esc(w.name)}</b> · ${esc('LU ' + w.lu)}</span>
       <span class="st ${on ? 'on' : 'off'}">${on ? 'offen' : 'gesperrt'}</span>
-      <button data-w="${w.id}" ${on ? '' : 'class="primary"'} ${busy || !CONFIG.saveUrl ? 'disabled' : ''}>${on ? 'Sperren' : 'Freischalten'}</button></div>`;
+      <button data-k="${w.id}" ${on ? '' : 'class="primary"'} ${dis}>${on ? 'Welt sperren' : 'Welt freischalten'}</button>
+      <button data-k="boss_${w.id}" class="${bossOn ? '' : 'primary'}" ${dis}>${bossOn ? `${esc(BOSSES[w.id].name)} schlafen lassen` : `${esc(BOSSES[w.id].name)} für alle wecken`}</button></div>
+      <div class="chips">${chips}</div>`;
   }).join('');
-  $('#worldToggles').querySelectorAll('button').forEach(b => b.onclick = () => setWorld(b.dataset.w, !worldState[b.dataset.w]));
+  $('#worldToggles').querySelectorAll('button[data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k, isB = !!BYID[k];
+    setSwitch({ [k]: isB ? worldState[k] === false : !worldState[k] }, describe(k, isB ? worldState[k] === false : !worldState[k]));
+  });
+  const k = classInfo(worldState), sum = classSum();
+  $('#classInfo').innerHTML = `Klassen-Leuchtturm: <b>${k.total} Coins</b> übertragen (Stufe ${k.stage} von ${CLASS_STAGES}). In den geladenen Spielständen: <b>${sum} Coins</b>${students.size ? '' : ' (zuerst Spielstände laden)'}.`;
+  $('#classBtn').disabled = busy || !CONFIG.saveUrl || !students.size || sum <= k.total;
 }
+function describe(k, on) {
+  if (WORLDS[k]) return `«${WORLDS[k].name}» ist jetzt ${on ? 'offen' : 'gesperrt'}.`;
+  if (k.startsWith('boss_')) return `${BOSSES[k.slice(5)].name}: ${on ? 'für alle geweckt' : 'schläft wieder (ausser bei 3 Abzeichen)'}.`;
+  return `«${BYID[k].name}» ist jetzt ${on ? 'offen' : 'gesperrt'}.`;
+}
+// Summe der verdienten Coins aller geladenen Spielstände (nur die Zahl geht an den Worker)
+const classSum = () => [...students.values()].reduce((a, st) => a + (st.earned || 0), 0);
+$('#classBtn').onclick = () => {
+  const total = Math.max(classSum(), classInfo(worldState).total);
+  setSwitch({ klasse: total }, `Klassen-Leuchtturm: ${total} Coins übertragen.`);
+};
 async function workerJson(path, opts) {
   let res;
   try { res = await fetch(new URL(path, CONFIG.saveUrl), { cache: 'no-store', ...opts }); }
@@ -126,14 +151,18 @@ async function loadWorlds() {
   try { worldState = { ...CONFIG.worlds, ...(await workerJson('/worlds')).worlds }; renderWorldToggles(); $('#worldMsg').textContent = ''; }
   catch (er) { $('#worldMsg').innerHTML = `<span class="error">${esc(er.message)}</span>`; }
 }
-async function setWorld(id, on) {
+async function setSwitch(patch, msg) {
   renderWorldToggles(true); $('#worldMsg').textContent = 'Speichere …';
   try {
     const { challenge, exp, ticket } = await workerJson('/worlds/challenge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     const answer = await K.openChallenge(challenge, priv);
-    const res = await workerJson('/worlds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer, exp, ticket, worlds: { ...worldState, [id]: on } }) });
+    const want = { ...worldState, ...patch };
+    const res = await workerJson('/worlds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer, exp, ticket, worlds: want }) });
     worldState = { ...CONFIG.worlds, ...res.worlds };
-    $('#worldMsg').textContent = `«${WORLDS[id].name}» ist jetzt ${on ? 'offen' : 'gesperrt'}. Die Klasse sieht es innert etwa einer Minute im Spiel und in der App.`;
+    const lost = Object.keys(patch).filter(k => res.worlds[k] !== patch[k]);
+    $('#worldMsg').innerHTML = lost.length
+      ? '<span class="error">Der Worker hat die Änderung nicht übernommen. Setze den neuen Worker-Code bei Cloudflare ein (worker/README.md, «Worker-Code aktualisieren»).</span>'
+      : `${esc(msg)} Die Klasse sieht es innert etwa einer Minute im Spiel und in der App.`;
   } catch (er) { $('#worldMsg').innerHTML = `<span class="error">${esc(er.message || 'Speichern nicht möglich.')}</span>`; }
   renderWorldToggles();
 }
@@ -145,9 +174,13 @@ function summary(st) {
   const ms = st.log.reduce((a, l) => a + Math.min(l.ms || 0, 10 * 60000), 0);
   const lastAct = st.log.length ? st.log[st.log.length - 1].t : st.lastSave;
   const hints = st.log.filter(l => l.hint).length;
-  const tasks = st.log.filter(l => l.b !== 'level'), inApp = tasks.filter(l => l.via === 'app').length;
-  return { c, w, n: c + w, rate: c + w ? c / (c + w) : null, ms, lastAct, hints, access: tasks.length ? `Spiel ${tasks.length - inApp} · App ${inApp}` : '–' };
+  const tasks = st.log.filter(l => BYID[l.b]), inApp = tasks.filter(l => l.via === 'app').length;
+  const badges = BADGES.filter(b => st.badges?.[b.lz]?.silver).length, gold = BADGES.filter(b => st.badges?.[b.lz]?.gold).length;
+  const boss = Object.keys(BOSSES).map(w => st.boss?.[w]?.wins ? BOSSES[w].short + ' ✓' : '').filter(Boolean).join(' · ') || '–';
+  return { c, w, n: c + w, rate: c + w ? c / (c + w) : null, ms, lastAct, hints, access: tasks.length ? `Spiel ${tasks.length - inApp} · App ${inApp}` : '–', badges, gold, boss };
 }
+// Name eines Log-Eintrags (Gebäude oder Sonderereignis)
+const logName = (l) => BYID[l.b]?.name || { level: 'Level-Turm', badge: 'Abzeichen', shop: 'Shop', boss: 'Boss-Sieg' }[l.b] || l.b;
 function bcell(st, id) {
   const s = st.stats[id]; if (!s) return { txt: '–', cls: 'n' };
   const c = s[1].c + s[2].c + s[3].c, w = s[1].w + s[2].w + s[3].w;
@@ -177,22 +210,25 @@ function render() {
     <div class="tile"><b>${tot}</b><span>gelöste Aufgaben (Klasse)</span></div>
     <div class="tile"><b>${tot ? Math.round(cor / tot * 100) + ' %' : '–'}</b><span>Trefferquote Klasse</span></div>
     <div class="tile"><b>${(list.reduce((a, s) => a + s.level, 0) / list.length).toFixed(1)}</b><span>durchschnittliches Level</span></div>
+    ${Object.keys(BOSSES).map(w => `<div class="tile"><b>${list.filter(st => st.boss?.[w]?.wins).length} / ${list.length}</b><span>${esc(BOSSES[w].name)} besiegt</span></div>`).join('')}
+    ${BADGES.map(b => `<div class="tile"><b>${list.filter(st => st.badges?.[b.lz]?.silver).length}</b><span>${b.icon} ${esc(b.lz)} Abzeichen</span></div>`).join('')}
     ${Object.entries(lz).sort().map(([k, v]) => `<div class="tile ${v.n ? (v.c / v.n >= 0.8 ? 'g' : v.c / v.n >= 0.5 ? 'y' : 'r') : ''}"><b>${v.n ? Math.round(v.c / v.n * 100) + ' %' : '–'}</b><span>${esc(k)} · ${v.n} Aufgaben</span></div>`).join('')}` : '';
   // Tabelle
-  const head = `<thead><tr><th>ID</th><th>Name (nur im Dongle)</th><th>Level</th><th>Coins</th><th>verdient</th><th>Aufgaben</th><th>Treffer</th><th>Hilfen</th><th>Lernzeit</th><th>Zugang</th><th>letzte Aktivität</th>
+  const head = `<thead><tr><th>ID</th><th>Name (nur im Dongle)</th><th>Level</th><th>Coins</th><th>verdient</th><th>Aufgaben</th><th>Treffer</th><th>Hilfen</th><th>Lernzeit</th><th>Zugang</th><th>letzte Aktivität</th><th title="Abzeichen (davon Gold) von 8">Abzeichen</th><th>Boss</th>
     ${BUILDINGS.map(b => `<th class="b" title="${esc(b.topic)}">${b.lu === 11 ? 'LU11' : 'LU10'} ${esc(b.name)}</th>`).join('')}</tr></thead>`;
   const ids = new Set([...list.map(s => s.id), ...Object.keys(dongle.names)]);
   const rows = [...ids].sort().map(id => {
     const st = students.get(id);
     const nameInput = `<input class="name" data-id="${esc(id)}" value="${esc(dongle.names[id] || '')}" placeholder="—">`;
-    if (!st) return `<tr class="missing"><td><b>${esc(id)}</b></td><td>${nameInput}</td><td colspan="${9 + BUILDINGS.length}" class="n">keine Datei geladen</td></tr>`;
+    if (!st) return `<tr class="missing"><td><b>${esc(id)}</b></td><td>${nameInput}</td><td colspan="${11 + BUILDINGS.length}" class="n">keine Datei geladen</td></tr>`;
     const s = summary(st);
     return `<tr data-id="${esc(id)}" class="${selected === id ? 'sel' : ''}"><td><b>${esc(id)}</b></td><td>${nameInput}</td><td>${st.level}</td><td>${st.coins}</td><td>${st.earned}</td>
       <td>${s.c}/${s.n}</td><td class="${s.rate == null ? 'n' : s.rate >= .8 ? 'g' : s.rate >= .5 ? 'y' : 'r'}">${s.rate == null ? '–' : Math.round(s.rate * 100) + ' %'}</td>
-      <td>${s.hints}</td><td>${fmtTime(s.ms)}</td><td>${s.access}</td><td>${fmtDate(s.lastAct)}</td>
+      <td>${s.hints}</td><td>${fmtTime(s.ms)}</td><td>${s.access}</td><td>${fmtDate(s.lastAct)}</td><td>${s.badges}${s.gold ? ` (${s.gold})` : ''}</td><td>${esc(s.boss)}</td>
       ${BUILDINGS.map(b => { const c = bcell(st, b.id); return `<td class="cell ${c.cls}">${c.txt}</td>`; }).join('')}</tr>`;
   }).join('');
-  $('#overview').innerHTML = head + `<tbody>${rows || `<tr><td colspan="${11 + BUILDINGS.length}" class="n">Noch keine Daten.</td></tr>`}</tbody>`;
+  $('#overview').innerHTML = head + `<tbody>${rows || `<tr><td colspan="${13 + BUILDINGS.length}" class="n">Noch keine Daten.</td></tr>`}</tbody>`;
+  if (dongle) renderWorldToggles();
   $('#overview').querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = (e) => { if (e.target.tagName !== 'INPUT') { selected = tr.dataset.id; render(); showDetail(selected); } });
   $('#overview').querySelectorAll('input.name').forEach(inp => inp.onchange = () => { dongle.names[inp.dataset.id] = inp.value.trim(); });
 }
@@ -204,8 +240,8 @@ function showDetail(id) {
     const x = st.stats[b.id];
     return `<tr><td>LU ${b.lu}</td><td>${esc(b.name)}</td><td>${esc(b.topic)}</td><td>${esc(b.lz)}</td>${[1, 2, 3].map(k => `<td>${x[k].c} / ${x[k].c + x[k].w}</td>`).join('')}</tr>`;
   }).join('');
-  const log = st.log.slice().reverse().slice(0, 200).map(l => `<tr><td>${fmtDate(l.t)}</td><td>${l.via === 'app' ? 'App' : 'Spiel'}</td><td>${esc(BYID[l.b]?.name || (l.b === 'level' ? 'Level-Turm' : l.b))}</td>
-    <td>${l.s ? STAGES[l.s].stars : ''}</td><td class="${l.ok ? 'ok' : 'no'}">${l.b === 'level' ? '' : l.ok ? 'richtig' : 'falsch'}</td><td>${l.tries || ''}${l.hint ? ' · Hilfe' : ''}</td>
+  const log = st.log.slice().reverse().slice(0, 200).map(l => `<tr><td>${fmtDate(l.t)}</td><td>${l.via === 'app' ? 'App' : 'Spiel'}</td><td>${esc(logName(l))}${l.boss && BYID[l.b] ? ` <span class="small">(Boss, Phase ${l.ph})</span>` : ''}</td>
+    <td>${l.s ? STAGES[l.s].stars : ''}</td><td class="${l.ok ? 'ok' : 'no'}">${BYID[l.b] ? (l.ok ? 'richtig' : 'falsch') : ''}</td><td>${l.tries || ''}${l.hint ? ' · Hilfe' : ''}</td>
     <td>${l.coins > 0 ? '+' : ''}${l.coins}</td><td>${l.ms ? Math.round(l.ms / 1000) + ' s' : ''}</td><td title="${esc(l.q)}">${esc((l.q || '').slice(0, 70))}</td><td>${esc((l.a || []).join(' | '))}</td></tr>`).join('');
   const sessions = (st.sessions || []).slice(-10).reverse().map(x => `<li>${fmtDate(x.start)} – ${x.end ? new Date(x.end).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : '?'}</li>`).join('');
   $('#detail').hidden = false;
@@ -217,6 +253,12 @@ function showDetail(id) {
         <div class="tw"><table class="grid"><thead><tr><th>LU</th><th>Gebäude</th><th>Thema in der App</th><th>Lernziel</th><th>★ Grund</th><th>★★ Standard</th><th>★★★ Erweiterung</th></tr></thead><tbody>${byB}</tbody></table></div></div>
       <div><h2>Letzte Sitzungen</h2><ul>${sessions || '<li>–</li>'}</ul></div>
     </div>
+    <div class="cols">
+      <div><h2>Abzeichen</h2><ul class="badges">${BADGES.map(b => { const h = st.badges?.[b.lz] || {}; return `<li class="${h.gold ? 'gold' : h.silver ? 'silver' : ''}"><i>${b.icon}</i><b>${esc(b.lz)} ${esc(b.name)}</b><span>${h.gold ? 'Gold ' + fmtDate(h.gold) : h.silver ? fmtDate(h.silver) : 'noch nicht'}</span></li>`; }).join('')}</ul></div>
+      <div><h2>Boss-Kämpfe (richtig / falsch pro Phase)</h2><table class="grid"><thead><tr><th>Boss</th><th>Kämpfe</th><th>Siege</th><th>Bestzeit</th>${[1, 2, 3].map(k => `<th>Phase ${k}</th>`).join('')}</tr></thead><tbody>
+        ${Object.keys(BOSSES).map(w => { const x = st.boss?.[w]; if (!x) return ''; return `<tr><td>${esc(BOSSES[w].name)}</td><td>${x.fights}</td><td>${x.wins}</td><td>${x.best ? Math.round(x.best / 1000) + ' s' : '–'}</td>${[0, 1, 2].map(k => `<td title="${esc(BOSSES[w].phases[k].name)}" class="${x.wrong[k] > x.right[k] ? 'r' : ''}">${x.right[k]} / ${x.wrong[k]}</td>`).join('')}</tr>`; }).join('')}</tbody></table>
+        <p class="small">Probe-Bonus: ${st.probes?.ok || 0} von ${st.probes?.n || 0} Proben richtig. Shop: ${(st.items || []).length} Gegenstände.</p></div>
+    </div>
     <h2>Lernaktivitäten (neueste zuerst, max. 200)</h2>
     <div class="tw log"><table class="grid"><thead><tr><th>Zeit</th><th>Zugang</th><th>Gebäude</th><th>Niveau</th><th>Ergebnis</th><th>Versuche</th><th>Coins</th><th>Dauer</th><th>Aufgabe</th><th>Antwort</th></tr></thead><tbody>${log}</tbody></table></div>`;
   $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -224,11 +266,11 @@ function showDetail(id) {
 
 // ---------- CSV ----------
 $('#csvBtn').onclick = () => {
-  const head = ['ID', 'Name', 'Level', 'Coins', 'verdient', 'richtig', 'bearbeitet', 'Trefferquote', 'Hilfen', 'Lernzeit_min', 'Zugang', 'letzte_Aktivitaet', ...BUILDINGS.flatMap(b => [1, 2, 3].map(k => `${b.name} N${k} richtig/bearbeitet`))];
+  const head = ['ID', 'Name', 'Level', 'Coins', 'verdient', 'richtig', 'bearbeitet', 'Trefferquote', 'Hilfen', 'Lernzeit_min', 'Zugang', 'letzte_Aktivitaet', 'Abzeichen', 'Gold', 'Boss_besiegt', 'Proben_richtig', ...BUILDINGS.flatMap(b => [1, 2, 3].map(k => `${b.name} N${k} richtig/bearbeitet`))];
   const lines = [head];
   for (const st of [...students.values()].sort((a, b) => a.id.localeCompare(b.id))) {
     const s = summary(st);
-    lines.push([st.id, dongle.names[st.id] || '', st.level, st.coins, st.earned, s.c, s.n, s.rate == null ? '' : Math.round(s.rate * 100) + '%', s.hints, Math.round(s.ms / 60000), s.access, fmtDate(s.lastAct),
+    lines.push([st.id, dongle.names[st.id] || '', st.level, st.coins, st.earned, s.c, s.n, s.rate == null ? '' : Math.round(s.rate * 100) + '%', s.hints, Math.round(s.ms / 60000), s.access, fmtDate(s.lastAct), s.badges, s.gold, s.boss, st.probes?.ok || 0,
       ...BUILDINGS.flatMap(b => [1, 2, 3].map(k => `${st.stats[b.id][k].c}/${st.stats[b.id][k].c + st.stats[b.id][k].w}`))]);
   }
   const csv = '﻿' + lines.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');

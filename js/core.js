@@ -1,10 +1,11 @@
 // MathWelt 3A – gemeinsame Regeln und Speicherung für das Spiel (index.html) und die Lern-App (app.html).
 // Beide Zugänge nutzen denselben Spielstand, dieselben Codes und dieselben Aufgaben.
 // Dieses Modul zeichnet nichts ausser dem QR-Scanner, den beide Anmeldeseiten mit denselben IDs enthalten.
-import { BUILDINGS, STAGES, checkPart } from './tasks.js';
+import { BUILDINGS, STAGES, WORLDS, checkPart } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
 
+const BYID = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- Level ----------
@@ -25,11 +26,20 @@ const emptyStats = () => ({ 1: { c: 0, w: 0 }, 2: { c: 0, w: 0 }, 3: { c: 0, w: 
 export function newState(id) {
   const stats = {};
   for (const b of BUILDINGS) stats[b.id] = emptyStats();
-  return { app: 'mathwelt-3a', v: 1, id, created: Date.now(), lastSave: Date.now(), coins: 0, earned: 0, level: 1, hints: 0, stats, log: [], sessions: [], world: null, posBy: {}, unsavedSince: 0 };
+  const st = { app: 'mathwelt-3a', v: 1, id, created: Date.now(), lastSave: Date.now(), coins: 0, earned: 0, level: 1, hints: 0, stats, log: [], sessions: [], world: null, posBy: {}, unsavedSince: 0 };
+  migrate(st);
+  return st;
 }
+const emptyBoss = () => ({ fights: 0, wins: 0, right: [0, 0, 0], wrong: [0, 0, 0], best: null, last: null });
 export function migrate(st) {
   st.posBy = st.posBy || {}; delete st.pos;   // alte Position passt nicht mehr zu den neuen Karten
   for (const b of BUILDINGS) if (!st.stats[b.id]) st.stats[b.id] = emptyStats();
+  st.badges = st.badges || {};                 // { LZ1: { silver: Zeit, gold: Zeit } }
+  st.items = st.items || [];                   // gekaufte Gegenstände aus dem Shop
+  st.equip = st.equip || { pet: null, top: null };
+  st.probes = st.probes || { ok: 0, n: 0 };    // Probe-Bonus
+  st.boss = st.boss || {};
+  for (const w of Object.keys(WORLDS)) st.boss[w] = { ...emptyBoss(), ...st.boss[w] };
 }
 
 const storageKey = (id) => 'mathwelt3a_' + id;
@@ -137,6 +147,13 @@ export async function fetchWorlds() {
   } catch (e) { console.warn('Freigabe der Welten nicht lesbar', e); return { worlds: knownWorlds(), checked: false }; }
 }
 
+// Gebäude sind offen, solange die Lehrperson sie nicht sperrt; der Boss ist gesperrt, bis sie ihn öffnet
+// oder bis jemand 3 Abzeichen der Welt hat.
+export const worldOf = (b) => Object.values(WORLDS).find(w => w.lu === b.lu).id;
+export const buildingOpen = (worlds, b) => !!worlds[worldOf(b)] && worlds[b.id] !== false;
+export const BOSS_BADGES = 3;
+export const bossOpen = (S, worlds, w) => !!worlds[w] && (!!worlds['boss_' + w] || badgeCount(S, w) >= BOSS_BADGES);
+
 // ---------- Binnendifferenzierung ----------
 export const unlocked3 = (S, id) => S.stats[id][2].c >= 3;
 export function recommended(S, id) {
@@ -163,8 +180,8 @@ export function answerHtml(cur) {
     ? `<fieldset class="mc"><legend>${esc(p.label || 'Wähle die richtige Antwort')}</legend>${p.options.map((o, j) => `<label><input type="radio" name="p${i}" value="${j}"> <span>${esc(o)}</span></label>`).join('')}</fieldset>`
     : `<label class="num">${esc(p.label)} <input id="p${i}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. 7 oder −2,5">${p.unit ? ' ' + p.unit : (cur.task.unit ? ' ' + cur.task.unit : '')}</label>`).join('');
 }
-export function readAnswers(cur) {
-  return cur.parts.map((p, i) => p.kind === 'mc' ? (document.querySelector(`input[name=p${i}]:checked`)?.value ?? null) : document.querySelector('#p' + i).value);
+export function readAnswers(cur, root = document) {
+  return cur.parts.map((p, i) => p.kind === 'mc' ? (root.querySelector(`input[name=p${i}]:checked`)?.value ?? null) : root.querySelector('#p' + i).value);
 }
 // Bewertet die Antworten. Nach dem letzten Versuch: Coins, Statistik und Eintrag für die Masterview.
 export function gradeTask(S, cur, vals, via) {
@@ -174,8 +191,13 @@ export function gradeTask(S, cur, vals, via) {
   if (!ok && cur.tries < 2) return { ok, results, finished: false, coins: 0 };
   cur.done = true;
   const { id, stage: s, task: t } = cur;
+  const under = s === 1 && recommended(S, id) > 1;   // nur ★, wenn das Spiel schon ★★ empfiehlt
   let coins = 0;
-  if (ok) { coins = STAGES[s].coins; if (cur.tries > 1 || cur.hint) coins = Math.ceil(coins / 2); }
+  if (ok) {
+    coins = STAGES[s].coins;
+    if (cur.tries > 1 || cur.hint) coins = Math.ceil(coins / 2);
+    if (under) coins = Math.ceil(coins * UNDER_FACTOR);   // unter dem empfohlenen Niveau lohnt sich «Farmen» nicht
+  }
   S.coins += coins; S.earned += coins;
   S.stats[id][s][ok ? 'c' : 'w']++;
   const rec = S.stats[id].recent; rec.push({ s, ok }); if (rec.length > 10) rec.shift();
@@ -183,5 +205,95 @@ export function gradeTask(S, cur, vals, via) {
   S.log.push({ t: Date.now(), b: id, s, ok, tries: cur.tries, hint: cur.hint, ms: Date.now() - cur.t0, coins, q: plain, a: vals.map((v, i) => String(cur.parts[i].kind === 'mc' ? cur.parts[i].options[v] : v).slice(0, 40)), via });
   if (S.log.length > 3000) S.log.splice(0, S.log.length - 3000);
   S.unsavedSince++;
-  return { ok, results, finished: true, coins };
+  const badges = checkBadges(S, via);
+  return { ok, results, finished: true, coins, under, badges, probe: ok && t.probe !== undefined };
+}
+export const UNDER_FACTOR = 0.4;
+
+// ---------- Probe-Bonus ----------
+// Nach einer richtigen Gleichung: Setze die Lösung ein. Welchen Wert haben beide Seiten?
+export const PROBE_COINS = 2;
+export function probeHtml(cur) {
+  const x = cur.parts[0].answer;
+  return `<div class="probe"><b>Probe-Bonus (+${PROBE_COINS} Coins):</b> Setze x = ${fmtN(x)} in die Gleichung ein. Welchen Wert haben dann beide Seiten?
+    <label class="num">Wert <input id="probeIn" type="text" autocomplete="off" spellcheck="false"></label> <button id="probeBtn">Probe prüfen</button> <span id="probeMsg"></span></div>`;
+}
+const fmtN = (n) => (n < 0 ? '−' : '') + String(Math.abs(Math.round(n * 1000) / 1000)).replace('.', ',');
+export function gradeProbe(S, cur, value) {
+  if (cur.probeDone || cur.task.probe === undefined) return null;
+  cur.probeDone = true;
+  const ok = checkPart({ kind: 'num', answer: cur.task.probe }, value);
+  S.probes.n++;
+  if (ok) { S.probes.ok++; S.coins += PROBE_COINS; S.earned += PROBE_COINS; }
+  return { ok, coins: ok ? PROBE_COINS : 0, value: fmtN(cur.task.probe) };
+}
+
+// ---------- Abzeichen pro Lernziel ----------
+// Abzeichen: 5 Aufgaben ab ★★ im ersten Versuch ohne Lösungshilfe. Gold: 3 solche Aufgaben auf ★★★.
+export const BADGES = [
+  { lz: 'LZ1', name: 'Umform-Ass', icon: '⚖️', w: 'gl', goal: 'Gleichungen mit Umformungen lösen' },
+  { lz: 'LZ2', name: 'Proben-Profi', icon: '✅', w: 'gl', goal: 'Lösungen mit der Probe prüfen' },
+  { lz: 'LZ3', name: 'Rätselknacker/in', icon: '🧩', w: 'gl', goal: 'Sachsituationen in Gleichungen übersetzen' },
+  { lz: 'LZ4', name: 'Fehlerdetektiv/in', icon: '🔍', w: 'gl', goal: 'Schritte notieren und Fehler finden' },
+  { lz: 'LZ5', name: 'Pyramiden-Leser/in', icon: '📊', w: 'aj', goal: 'Alterspyramiden lesen' },
+  { lz: 'LZ6', name: 'Prozent-Profi', icon: '％', w: 'aj', goal: 'Absolute und relative Zahlen' },
+  { lz: 'LZ7', name: 'Trend-Späher/in', icon: '📈', w: 'aj', goal: 'Entwicklungen aus Graphen lesen' },
+  { lz: 'LZ8', name: 'Faktenchecker/in', icon: '📰', w: 'aj', goal: 'Aussagen prüfen, kritisch fragen' },
+];
+export const BADGE_NEED = { silver: 5, gold: 3 }, BADGE_COINS = { silver: 15, gold: 25 };
+const hasLz = (b, lz) => b.lz.split(' · ').includes(lz);
+export function badgeProgress(S, lz) {
+  let silver = 0, gold = 0;
+  for (const l of S.log) {
+    const b = BYID[l.b];
+    if (!b || !l.ok || l.tries !== 1 || l.hint || l.s < 2 || !hasLz(b, lz)) continue;
+    silver++; if (l.s === 3) gold++;
+  }
+  return { silver: Math.min(silver, BADGE_NEED.silver), gold: Math.min(gold, BADGE_NEED.gold) };
+}
+export function checkBadges(S, via) {
+  const out = [];
+  for (const bd of BADGES) {
+    const p = badgeProgress(S, bd.lz), have = S.badges[bd.lz] || {};
+    for (const tier of ['silver', 'gold']) {
+      if (have[tier] || p[tier] < BADGE_NEED[tier]) continue;
+      have[tier] = Date.now(); S.badges[bd.lz] = have;
+      const coins = BADGE_COINS[tier];
+      S.coins += coins; S.earned += coins;
+      S.log.push({ t: Date.now(), b: 'badge', s: 0, ok: true, tries: 0, hint: false, ms: 0, coins, q: `${tier === 'gold' ? 'Gold-Abzeichen' : 'Abzeichen'} ${bd.lz} ${bd.name}`, a: [], via });
+      out.push({ ...bd, tier, coins });
+    }
+  }
+  return out;
+}
+export const badgeCount = (S, w, tier = 'silver') => BADGES.filter(b => (!w || b.w === w) && S.badges[b.lz]?.[tier]).length;
+
+// ---------- Shop: nur Aussehen, kein Vorteil beim Rechnen ----------
+export const SHOP = [
+  { id: 'pet_wuerfel', kind: 'pet', name: 'Würfel-Begleiter', price: 40, desc: 'Ein kleiner Würfel hüpft hinter dir her.' },
+  { id: 'pet_vogel', kind: 'pet', name: 'Block-Vogel', price: 60, desc: 'Ein bunter Vogel flattert um dich herum.' },
+  { id: 'pet_robo', kind: 'pet', name: 'Mini-Roboter', price: 90, desc: 'Ein kleiner Roboter mit leuchtenden Augen.' },
+  { id: 'top_kristall', kind: 'top', name: 'Kristall-Spitze', price: 25, desc: 'Ein Kristall auf deiner goldenen Säule.' },
+  { id: 'top_flamme', kind: 'top', name: 'Flammen-Spitze', price: 25, desc: 'Eine orange Flamme auf deiner Säule.' },
+  { id: 'top_rose', kind: 'top', name: 'Rosen-Spitze', price: 25, desc: 'Eine rosa Blüte auf deiner Säule.' },
+];
+export function buyItem(S, id, via) {
+  const it = SHOP.find(x => x.id === id);
+  if (!it || S.items.includes(id) || S.coins < it.price) return false;
+  S.coins -= it.price; S.items.push(id); S.equip[it.kind] = id;
+  S.log.push({ t: Date.now(), b: 'shop', s: 0, ok: true, tries: 0, hint: false, ms: 0, coins: -it.price, q: `Shop: ${it.name}`, a: [], via });
+  return true;
+}
+export function equipItem(S, id) {
+  const it = SHOP.find(x => x.id === id); if (!it || !S.items.includes(id)) return;
+  S.equip[it.kind] = S.equip[it.kind] === id ? null : id;
+}
+
+// ---------- Klassen-Leuchtturm: alle verdienten Coins der Klasse ----------
+// Die Lehrperson überträgt die Summe in der Masterview (worlds.json → klasse). Keine Daten einzelner SuS.
+export const CLASS_STEP = 800, CLASS_STAGES = 10;
+export const classStage = (total) => Math.max(0, Math.min(CLASS_STAGES, Math.floor((total || 0) / CLASS_STEP)));
+export function classInfo(worlds) {
+  const total = Number(worlds?.klasse) || 0, stage = classStage(total);
+  return { total, stage, next: stage >= CLASS_STAGES ? null : (stage + 1) * CLASS_STEP };
 }

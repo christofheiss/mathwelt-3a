@@ -171,6 +171,16 @@ function mul(a, b) { // a*b, spaltenweise
   return o;
 }
 
+// Flächen eines Würfels: Normale, 4 Ecken (gegen Uhrzeigersinn von aussen), Helligkeit, Kacheltyp (0 oben,1 Seite,2 unten)
+const FACE_DEFS = [
+  { n: [0, 1, 0], c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: 0 },
+  { n: [0, -1, 0], c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.5, k: 2 },
+  { n: [1, 0, 0], c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 1 },
+  { n: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 1 },
+  { n: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.65, k: 1 },
+  { n: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.65, k: 1 }
+];
+
 // ---------- Renderer ----------
 const VS = `
 attribute vec3 aPos; attribute vec2 aUV; attribute float aShade;
@@ -210,28 +220,21 @@ export class Renderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     this.atlasW = atlas.width; this.atlasH = atlas.height;
-    this.buf = gl.createBuffer(); this.count = 0;
+    this.buf = gl.createBuffer(); this.count = 0; this.ebuf = gl.createBuffer();
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK);
     this.sky = [0.55, 0.75, 0.95];
     this.rebuild();
   }
 
+  uvOf(tile) {
+    const u0 = (tile % ATLAS_COLS) * TILE / this.atlasW, v0 = Math.floor(tile / ATLAS_COLS) * TILE / this.atlasH;
+    const du = TILE / this.atlasW, dv = TILE / this.atlasH, e = 0.0005;
+    return [u0 + e, v0 + e, u0 + du - e, v0 + dv - e];
+  }
+
   rebuild() {
     const w = this.world, out = [];
-    const uvOf = (tile) => {
-      const u0 = (tile % ATLAS_COLS) * TILE / this.atlasW, v0 = Math.floor(tile / ATLAS_COLS) * TILE / this.atlasH;
-      const du = TILE / this.atlasW, dv = TILE / this.atlasH, e = 0.0005;
-      return [u0 + e, v0 + e, u0 + du - e, v0 + dv - e];
-    };
-    // Flächen: Normale, 4 Ecken (gegen Uhrzeigersinn von aussen), Helligkeit, Kacheltyp (0 oben,1 Seite,2 unten)
-    const F = [
-      { n: [0, 1, 0], c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: 0 },
-      { n: [0, -1, 0], c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.5, k: 2 },
-      { n: [1, 0, 0], c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 1 },
-      { n: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 1 },
-      { n: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.65, k: 1 },
-      { n: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.65, k: 1 }
-    ];
+    const uvOf = (tile) => this.uvOf(tile), F = FACE_DEFS;
     for (let y = 0; y < w.sy; y++) for (let z = 0; z < w.sz; z++) for (let x = 0; x < w.sx; x++) {
       const t = w.data[w.idx(x, y, z)]; if (!t) continue;
       const faces = FACES[t] || FACES[B.STONE];
@@ -278,6 +281,37 @@ export class Renderer {
     gl.enableVertexAttribArray(L.aUV); gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 24, 12);
     gl.enableVertexAttribArray(L.aShade); gl.vertexAttribPointer(L.aShade, 1, gl.FLOAT, false, 24, 20);
     gl.drawArrays(gl.TRIANGLES, 0, this.count);
+  }
+
+  // Bewegliche Quader (Boss, Begleiter), nach draw() aufrufen.
+  // Quader: { c: [x,y,z] Mitte, h: [hx,hy,hz] halbe Grösse, t: Blocktyp, yaw (um die senkrechte Achse),
+  //           rx (Kippen um die eigene x-Achse um den Drehpunkt piv, z. B. für Arme), piv: [x,y,z] relativ zur Mitte, shade }
+  drawBoxes(boxes) {
+    if (!boxes.length) return;
+    const out = [];
+    for (const bx of boxes) {
+      const faces = FACES[bx.t] || FACES[B.STONE];
+      const cy = Math.cos(bx.yaw || 0), sy = Math.sin(bx.yaw || 0), rx = bx.rx || 0, cr = Math.cos(rx), sr = Math.sin(rx);
+      const piv = bx.piv || [0, 0, 0], [hx, hy, hz] = bx.h, [X, Y, Z] = bx.c;
+      const tf = (c) => {
+        let x = (c[0] * 2 - 1) * hx, y = (c[1] * 2 - 1) * hy, z = (c[2] * 2 - 1) * hz;
+        if (rx) { const yy = y - piv[1], zz = z - piv[2]; y = piv[1] + yy * cr - zz * sr; z = piv[2] + yy * sr + zz * cr; }
+        return [X + x * cy - z * sy, Y + y, Z + x * sy + z * cy];
+      };
+      for (const f of FACE_DEFS) {
+        const [u0, v0, u1, v1] = this.uvOf(faces[f.k]);
+        const uv = [[u0, v1], [u1, v1], [u1, v0], [u0, v0]];
+        const shade = f.s * (bx.shade ?? 1) * (bx.t === B.LAMP ? 1.25 : 1);
+        const P = f.c.map(tf);
+        for (const i of [0, 1, 2, 0, 2, 3]) out.push(P[i][0], P[i][1], P[i][2], uv[i][0], uv[i][1], shade);
+      }
+    }
+    const gl = this.gl, L = this.loc;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.ebuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(out), gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(L.aPos, 3, gl.FLOAT, false, 24, 0);
+    gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 24, 12);
+    gl.vertexAttribPointer(L.aShade, 1, gl.FLOAT, false, 24, 20);
+    gl.drawArrays(gl.TRIANGLES, 0, out.length / 6);
   }
 
   // Weltpunkt -> Bildschirmpunkt (CSS-Pixel); null wenn hinter der Kamera

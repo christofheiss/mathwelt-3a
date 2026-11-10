@@ -1,6 +1,8 @@
 // MathWelt 3A – Spiellogik, Anmeldung, Speichern
 import { Renderer, Player, MAP_COLORS } from './engine.js';
-import { buildWorld, buildingAt, setFamePillar, G, SIZE, LEVEL_TOWER } from './world.js';
+import { buildWorld, buildingAt, setFamePillar, setClassTower, G, SIZE, LEVEL_TOWER, ARENA } from './world.js';
+import { golem, oracle, pet } from './models.js';
+import { BOSSES, mountFight } from './boss.js';
 import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
@@ -14,6 +16,8 @@ const BYID = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
 
 let token = null, sKey = null, S = null;            // Token, Schlüssel, Spielstand
 let renderer, player, worldData, paused = true, current = null;
+let fightUi = null, shake = 0, petPos = null;
+const bossSt = { x: ARENA.x + 0.5, y: G + 1, z: ARENA.z + 0.5, yaw: -Math.PI / 2, t: 0, phase: 0, sleep: true, hitT: 0, slamT: 0, shieldT: 0, deadT: null };
 const keys = {};
 
 // ---------- Spielstand ----------
@@ -54,6 +58,7 @@ async function tryLogin(raw) {
     const acc = await C.signIn(raw);
     token = acc.token; sKey = acc.sKey; S = acc.S;
     $('#login').hidden = true;
+    announceBadges(C.checkBadges(S, VIA));
     if (acc.isNew) showWelcome(); else startGame();
   } catch (e) { err.textContent = e.message; }
   finally { $('#loginBtn').disabled = false; $('#loginBtn').textContent = 'Anmelden'; }
@@ -73,7 +78,16 @@ function startGame() {
 let openWorlds = C.knownWorlds(), worldsChecked = false, worldsTimer = null;
 
 async function refreshWorlds() {
+  const before = JSON.stringify(openWorlds);
   ({ worlds: openWorlds, checked: worldsChecked } = await C.fetchWorlds());
+  if (worldData && JSON.stringify(openWorlds) !== before) applyWorlds();
+}
+// Neue Freigabe oder neue Coins der Klasse: Beschriftungen und Leuchtturm nachführen
+let shownClassStage = null;
+function applyWorlds() {
+  const st = C.classInfo(openWorlds).stage;
+  if (st !== shownClassStage) { shownClassStage = st; worldData.meta.klasse.signY = setClassTower(worldData.world, st) + 2; renderer.rebuild(); }
+  refreshLabels();
 }
 function renderWorlds() {
   $('#worldCards').innerHTML = Object.values(WORLDS).map(w => {
@@ -81,8 +95,9 @@ function renderWorlds() {
     const open = !!openWorlds[w.id];
     return `<div class="worldcard ${open ? 'open' : 'locked'}"><h3>${esc(w.name)}</h3><p>${esc(w.sub)}</p>
       <p class="small">${solved} Aufgaben richtig gelöst</p>
+      <p class="small">Abzeichen: ${C.badgeCount(S, w.id)} von 4 · ${esc(BOSSES[w.id].name)}: ${S.boss[w.id].wins ? 'besiegt ✓' : 'noch nicht besiegt'}</p>
       ${open ? `<button class="primary" data-w="${w.id}">${S.world === w.id && player ? 'Weiterspielen' : 'Betreten'}</button>` : '<p class="lockmsg">Noch gesperrt. Deine Lehrperson schaltet diese Welt frei.</p>'}</div>`;
-  }).join('');
+  }).join('') + classCard();
   $('#worldCards').querySelectorAll('button[data-w]').forEach(btn => btn.onclick = () => enterWorld(btn.dataset.w));
   $('#worldsNote').textContent = worldsChecked ? '' : 'Die aktuelle Freigabe konnte nicht geprüft werden. Es wird der letzte bekannte Stand angezeigt.';
 }
@@ -95,14 +110,22 @@ async function showWorlds() {
   clearInterval(worldsTimer); worldsTimer = setInterval(poll, 20000);
   await poll();
 }
-function closeWorlds() { clearInterval(worldsTimer); $('#worlds').hidden = true; }
+function closeWorlds() { clearInterval(worldsTimer); worldsTimer = setInterval(refreshWorlds, 60000); $('#worlds').hidden = true; }
+function classCard() {
+  const k = C.classInfo(openWorlds);
+  return `<div class="worldcard classcard"><h3>Klassen-Leuchtturm 3A</h3>
+    <div class="bar"><div style="width:${k.stage / C.CLASS_STAGES * 100}%"></div></div>
+    <p class="small">Stufe ${k.stage} von ${C.CLASS_STAGES} · ${k.total} Coins hat die ganze Klasse verdient${k.next ? `, nächste Stufe bei ${k.next}` : ' · fertig gebaut!'}. Deine Coins zählen mit (${S.earned}).</p></div>`;
+}
 
 let gameRunning = false;
 async function enterWorld(id) {
   await saveLocal();
   closeWorlds();
   S.world = id; $('#game').hidden = false;
-  const built = buildWorld(S.level, id); worldData = built;
+  shownClassStage = C.classInfo(openWorlds).stage;
+  const built = buildWorld(S.level, id, { top: S.equip.top, classStage: shownClassStage }); worldData = built;
+  bossSt.deadT = null; petPos = null;
   try {
     if (renderer) { renderer.world = built.world; renderer.rebuild(); }
     else renderer = new Renderer($('#view'), built.world);
@@ -133,11 +156,41 @@ function loop(now) {
       jump: keys.Space, run: keys.ShiftLeft || keys.ShiftRight
     });
   }
-  renderer.draw(player.camera());
+  // Boss nicht durchlaufen
+  const bdx = player.x - bossSt.x, bdz = player.z - bossSt.z, bd = Math.hypot(bdx, bdz);
+  if (bd < 1.9 && bossSt.deadT == null) { player.x = bossSt.x + bdx / (bd || 1) * 1.9; player.z = bossSt.z + bdz / (bd || 1) * 1.9; }
+  const cam = player.camera();
+  if (shake > 0) { cam.x += (Math.random() - 0.5) * shake * 0.3; cam.y += (Math.random() - 0.5) * shake * 0.3; shake = Math.max(0, shake - dt * 2.5); }
+  renderer.draw(cam);
+  renderer.drawBoxes([...bossBoxes(dt), ...petBoxes(dt)]);
   updateLabels();
   const b = buildingAt(worldData.meta, player.x, player.z);
   if (b !== inside) { inside = b; showPrompt(b); }
   requestAnimationFrame(loop);
+}
+
+// ---------- Boss und Begleiter ----------
+function bossBoxes(dt) {
+  const st = bossSt;
+  st.t += dt; st.hitT = Math.max(0, st.hitT - dt * 3); st.shieldT = Math.max(0, st.shieldT - dt);
+  if (st.slamT > 0) { const before = st.slamT; st.slamT = Math.max(0, st.slamT - dt * 1.25); if (before > 0.4 && st.slamT <= 0.4) shake = 1; }
+  if (st.deadT != null) st.deadT += dt;
+  st.sleep = !C.bossOpen(S, openWorlds, S.world) && !fightUi;
+  if (!st.sleep && st.deadT == null) {
+    const want = Math.atan2(player.x - st.x, -(player.z - st.z));
+    let d = want - st.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); st.yaw += d * Math.min(1, dt * 3);
+  }
+  return (S.world === 'aj' ? oracle : golem)(st);
+}
+function petBoxes(dt) {
+  if (!S.equip.pet || !player) return [];
+  const fx = Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  const tx = player.x + fx * 2.8 - fz * 1.3, tz = player.z + fz * 2.8 + fx * 1.3;   // vorne rechts, damit man ihn sieht
+  if (!petPos || Math.hypot(petPos.x - tx, petPos.z - tz) > 12) petPos = { x: tx, y: player.y, z: tz, yaw: player.yaw, t: 0 };
+  const k = Math.min(1, dt * 4);
+  petPos.x += (tx - petPos.x) * k; petPos.z += (tz - petPos.z) * k; petPos.y += (player.y - petPos.y) * k;
+  petPos.t += dt; petPos.yaw = Math.atan2(player.x - petPos.x, -(player.z - petPos.z));
+  return pet(S.equip.pet, petPos);
 }
 
 // ---------- Beschriftungen über den Gebäuden ----------
@@ -146,7 +199,7 @@ const stageProgress = (id) => progressOf(S, id);
 function makeLabels() {
   const box = $('#labels'); box.innerHTML = '';
   for (const [id, m] of Object.entries(worldData.meta)) {
-    const el = document.createElement('div'); el.className = 'label ' + (id === 'level' ? 'lv' : 'lu' + m.b.lu);
+    const el = document.createElement('div'); el.className = 'label ' + (id === 'level' ? 'lv' : id === 'boss' ? 'boss' : id === 'klasse' ? 'kl' : 'lu' + m.b.lu);
     box.appendChild(el); labelEls[id] = el;
   }
   refreshLabels();
@@ -154,7 +207,9 @@ function makeLabels() {
 function refreshLabels() {
   for (const [id, m] of Object.entries(worldData.meta)) {
     labelEls[id].innerHTML = id === 'level' ? `<b>Level-Turm</b><span>Level ${S.level} · ${esc(titleOf(S.level))}</span>`
-      : `<b>${esc(m.b.name)}</b><span>LU ${m.b.lu} · ${stageProgress(id)}</span>`;
+      : id === 'boss' ? `<b>${esc(BOSSES[S.world].name)}</b><span>${S.boss[S.world].wins ? 'besiegt ✓ · nochmals kämpfen' : C.bossOpen(S, openWorlds, S.world) ? 'bereit zum Kampf' : 'schläft noch'}</span>`
+      : id === 'klasse' ? `<b>Klassen-Leuchtturm</b><span>Stufe ${C.classInfo(openWorlds).stage} von ${C.CLASS_STAGES}</span>`
+      : `<b>${esc(m.b.name)}</b><span>LU ${m.b.lu} · ${C.buildingOpen(openWorlds, m.b) ? stageProgress(id) : 'noch gesperrt'}</span>`;
   }
 }
 function updateLabels() {
@@ -174,6 +229,7 @@ function updateHud() {
   $('#hudId').textContent = S.id;
   $('#hudLevel').textContent = `Level ${S.level} · ${titleOf(S.level)}`;
   $('#hudCoins').textContent = S.coins;
+  $('#hudBadges').textContent = `${C.badgeCount(S)} / ${C.BADGES.length}`;
   const cost = levelCost(S.level);
   $('#hudBar').style.width = Math.min(100, S.coins / cost * 100) + '%';
   $('#hudNext').textContent = S.coins >= cost ? 'Level-Aufstieg möglich: Gehe zum Level-Turm!' : `Noch ${cost - S.coins} Coins bis zum nächsten Level`;
@@ -182,11 +238,15 @@ function updateHud() {
 function toast(msg, ms = 3500) {
   const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => (t.hidden = true), ms);
 }
+function announceBadges(list) {
+  list.forEach((b, i) => setTimeout(() => toast(`${b.icon} ${b.tier === 'gold' ? 'Gold-Abzeichen' : 'Abzeichen'} «${b.name}» (${b.lz}) erhalten! +${b.coins} Coins`, 5000), i * 5200));
+}
 function showPrompt(id) {
   const pr = $('#prompt');
   if (!id) { pr.hidden = true; return; }
-  const name = id === 'level' ? 'Level-Turm' : BYID[id].name;
-  pr.innerHTML = `<b>${esc(name)}</b> · Drücke <kbd>E</kbd> oder <button id="enterBtn">Hier klicken</button>`;
+  const name = id === 'level' ? 'Level-Turm' : id === 'boss' ? BOSSES[S.world].name : id === 'klasse' ? 'Klassen-Leuchtturm' : BYID[id].name;
+  const locked = BYID[id] && !C.buildingOpen(openWorlds, BYID[id]);
+  pr.innerHTML = `<b>${esc(name)}</b>${locked ? ' (noch gesperrt)' : ''} · Drücke <kbd>E</kbd> oder <button id="enterBtn">Hier klicken</button>`;
   pr.hidden = false; $('#enterBtn').onclick = () => openBuilding(id);
 }
 
@@ -196,8 +256,11 @@ const unlocked3 = (id) => C.unlocked3(S, id);
 
 function openBuilding(id) {
   if (id === 'level') return openLevel();
-  paused = true; document.exitPointerLock?.();
+  if (id === 'boss') return openBoss();
+  if (id === 'klasse') return openClass();
   const b = BYID[id];
+  if (!C.buildingOpen(openWorlds, b)) { toast(`«${b.name}» ist noch gesperrt. Deine Lehrperson öffnet es, wenn ihr das Thema im Unterricht behandelt.`, 5000); return; }
+  paused = true; document.exitPointerLock?.();
   current = { id, stage: recommended(id) };
   $('#panel').hidden = false; $('#prompt').hidden = true;
   $('#pTitle').textContent = b.name;
@@ -205,7 +268,8 @@ function openBuilding(id) {
   newTask();
 }
 function closePanel() {
-  $('#panel').hidden = true; $('#levelPanel').hidden = true; current = null; paused = false; showPrompt(inside); refreshLabels();
+  $('#panel').hidden = true; $('#levelPanel').hidden = true; $('#infoPanel').hidden = true; $('#pAnswer').innerHTML = '';
+  current = null; paused = false; showPrompt(inside); refreshLabels();
 }
 function renderStages() {
   const id = current.id, rec = recommended(id);
@@ -232,13 +296,15 @@ async function check() {
   if (!current || current.done) return;
   const vals = C.readAnswers(current);
   if (vals.some(v => v === null || v === '')) { $('#pFeedback').className = 'warn'; $('#pFeedback').textContent = 'Bitte beantworte alle Teile.'; return; }
-  const { ok, results, finished, coins } = C.gradeTask(S, current, vals, VIA);
+  const { ok, results, finished, coins, under, badges, probe } = C.gradeTask(S, current, vals, VIA);
   const s = current.stage, t = current.task;
   if (finished) {
     $('#pFeedback').className = ok ? 'good' : 'bad';
     $('#pFeedback').innerHTML = ok
-      ? `<b>Richtig!</b> +${coins} Coins${coins < STAGES[s].coins ? ' (halbe Belohnung wegen Lösungshilfe oder zweitem Versuch)' : ''}<div class="sol">${t.sol}</div>`
+      ? `<b>Richtig!</b> +${coins} Coins${rewardNote(coins, s, under)}<div class="sol">${t.sol}</div>${probe ? C.probeHtml(current) : ''}`
       : `<b>Leider nicht richtig.</b> So geht es:<div class="sol">${t.sol}</div>`;
+    if (probe) wireProbe();
+    announceBadges(badges);
     $('#checkBtn').hidden = true; $('#hintBtn').hidden = true; $('#nextBtn').hidden = false; $('#nextBtn').focus();
     updateHud(); renderStages(); await saveLocal();
     if (S.unsavedSince === 10) toast(CONFIG.saveUrl ? 'Tipp: Speichere deinen Spielstand (Knopf «Speichern»).' : 'Tipp: Speichere deinen Spielstand als Datei (Knopf «Speichern»).', 5000);
@@ -247,6 +313,20 @@ async function check() {
     $('#pFeedback').innerHTML = `<b>Noch nicht ganz.</b> ${current.parts.length > 1 ? 'Kontrolliere: ' + results.map((r, i) => (r ? '' : esc(current.parts[i].label))).filter(Boolean).join(', ') + '. ' : ''}Du hast noch einen Versuch.`;
     if (!current.hint) showHint();
   }
+}
+function rewardNote(coins, s, under) {
+  if (coins >= STAGES[s].coins) return '';
+  return under ? ` (weniger Coins: Das Spiel empfiehlt dir ein höheres Niveau. Probiere ${STAGES[Math.min(3, s + 1)].stars}!)` : ' (halbe Belohnung wegen Lösungshilfe oder zweitem Versuch)';
+}
+function wireProbe() {
+  const go = async () => {
+    const r = C.gradeProbe(S, current, $('#probeIn').value); if (!r) return;
+    $('#probeIn').disabled = true; $('#probeBtn').disabled = true;
+    $('#probeMsg').innerHTML = r.ok ? `<b class="ok">Probe stimmt! +${r.coins} Coins</b>` : `Nicht ganz: Beide Seiten ergeben ${r.value}.`;
+    updateHud(); await saveLocal(); $('#nextBtn').focus();
+  };
+  $('#probeBtn').onclick = go;
+  $('#probeIn').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if ($('#probeIn').value.trim()) go(); else newTask(); } };
 }
 function showHint() {
   current.hint = true; S.hints++;
@@ -263,18 +343,78 @@ function renderLevel() {
   $('#lvBody').innerHTML = `
     <p>Du bist <b>Level ${S.level}</b>: ${esc(titleOf(S.level))}. Du hast <b>${S.coins} Coins</b> (insgesamt verdient: ${S.earned}).</p>
     <p>Der Aufstieg auf Level ${S.level + 1} (${esc(titleOf(S.level + 1))}) kostet <b>${cost} Coins</b>. Mit jedem Level wächst die goldene Säule auf dem Dorfplatz.</p>
-    <ol class="titles">${TITLES.map((t, i) => `<li class="${i + 1 <= S.level ? 'got' : ''}">Level ${i + 1}: ${esc(t)}</li>`).join('')}</ol>`;
+    <ol class="titles">${TITLES.map((t, i) => `<li class="${i + 1 <= S.level ? 'got' : ''}">Level ${i + 1}: ${esc(t)}</li>`).join('')}</ol>
+    <h3>Abzeichen</h3>${badgesHtml()}
+    <h3>Shop</h3><p class="small">Nur fürs Aussehen. Mit Coins kannst du entweder aufsteigen oder etwas kaufen: Du entscheidest.</p>
+    <ul class="shop">${C.SHOP.map(it => {
+      const have = S.items.includes(it.id), on = S.equip[it.kind] === it.id;
+      return `<li><b>${esc(it.name)}</b><span class="small">${esc(it.desc)}</span>${have ? `<button data-eq="${it.id}">${on ? 'Ablegen' : 'Benutzen'}</button>` : `<button data-buy="${it.id}" ${S.coins >= it.price ? '' : 'disabled'}>${it.price} Coins</button>`}</li>`;
+    }).join('')}</ul>`;
   $('#lvUp').disabled = !can; $('#lvUp').textContent = can ? `Für ${cost} Coins aufsteigen` : `Noch ${cost - S.coins} Coins sammeln`;
+  $('#lvBody').querySelectorAll('[data-buy]').forEach(b => b.onclick = async () => { if (C.buyItem(S, b.dataset.buy, VIA)) { applyLooks(); updateHud(); await saveLocal(); renderLevel(); toast('Gekauft!'); } });
+  $('#lvBody').querySelectorAll('[data-eq]').forEach(b => b.onclick = async () => { C.equipItem(S, b.dataset.eq); applyLooks(); await saveLocal(); renderLevel(); });
+}
+function applyLooks() { setFamePillar(worldData.world, S.level, S.equip.top); renderer.rebuild(); petPos = null; }
+function badgesHtml() {
+  return `<ul class="badges">${C.BADGES.map(b => {
+    const p = C.badgeProgress(S, b.lz), have = S.badges[b.lz] || {};
+    const cls = have.gold ? 'gold' : have.silver ? 'silver' : '';
+    const sub = have.gold ? 'Gold!' : have.silver ? `Gold: ${p.gold} / ${C.BADGE_NEED.gold} auf ★★★` : `${p.silver} / ${C.BADGE_NEED.silver} ab ★★`;
+    return `<li class="${cls}" title="${esc(b.goal)}: ${C.BADGE_NEED.silver} Aufgaben ab ★★ im ersten Versuch ohne Lösungshilfe. Gold: ${C.BADGE_NEED.gold} davon auf ★★★."><i>${b.icon}</i><b>${esc(b.name)}</b><span>${b.lz} · ${sub}</span></li>`;
+  }).join('')}</ul>`;
 }
 async function levelUp() {
   if (!C.buyLevel(S, VIA)) return;
-  setFamePillar(worldData.world, S.level); renderer.rebuild();
+  setFamePillar(worldData.world, S.level, S.equip.top); renderer.rebuild();
   renderLevel(); updateHud(); refreshLabels(); await saveLocal();
   toast(`Gratuliere! Du bist jetzt Level ${S.level}: ${titleOf(S.level)}.`);
 }
 
+// ---------- Boss-Kampf ----------
+function openBoss() {
+  const w = S.world, boss = BOSSES[w];
+  paused = true; document.exitPointerLock?.(); $('#prompt').hidden = true;
+  if (!C.bossOpen(S, openWorlds, w)) {
+    const n = C.badgeCount(S, w);
+    return info(boss.name, `<p>Der ${esc(boss.short)} schläft noch. Er erwacht, wenn deine Lehrperson die Arena öffnet oder wenn du ${C.BOSS_BADGES} Abzeichen dieser Welt hast. Du hast ${n} von ${C.BOSS_BADGES}.</p>${badgesHtml()}`);
+  }
+  // Kampfposition: vor dem Boss, er steht links im Bild, rechts das Aufgabenfenster
+  // Blickwinkel so drehen, dass der Boss in der Mitte der freien Fläche links vom Fenster steht
+  const W = innerWidth, H = innerHeight, panelW = W > 800 ? Math.min(560, W) : 0, f = (W - panelW) / W;
+  const tanH = Math.tan(35 * Math.PI / 180) * W / H;
+  player.x = ARENA.x - 6; player.z = ARENA.z + 0.5; player.y = G + 1.05; player.vy = 0; player.pitch = 0.3;
+  player.yaw = Math.PI / 2 + Math.atan((1 - f) * tanH);
+  bossSt.deadT = null; bossSt.phase = 0;
+  $('#bossPanel').hidden = false;
+  fightUi = mountFight($('#bossBox'), S, w, VIA, {
+    isOpen: (b) => C.buildingOpen(openWorlds, b),
+    start: () => { bossSt.phase = 0; bossSt.deadT = null; },
+    hit: () => { bossSt.hitT = 1; },
+    miss: () => { bossSt.slamT = 1; bossSt.shieldT = 1.4; },
+    phase: (p) => { bossSt.phase = p; },
+    win: () => { bossSt.deadT = 0; },
+    save: async () => { updateHud(); await saveLocal(); },
+    toast,
+    close: () => { $('#bossPanel').hidden = true; fightUi = null; bossSt.deadT = null; bossSt.phase = 0; paused = false; updateHud(); refreshLabels(); saveLocal(); },
+  });
+}
+function openClass() {
+  paused = true; document.exitPointerLock?.(); $('#prompt').hidden = true;
+  const k = C.classInfo(openWorlds);
+  info('Klassen-Leuchtturm 3A', `<p>Alle Coins, die eure Klasse verdient, bauen gemeinsam an diesem Leuchtturm. Alle ${C.CLASS_STEP} Coins wächst er um eine Stufe. Bei Stufe ${C.CLASS_STAGES} leuchtet er golden.</p>
+    <div class="bar big"><div style="width:${k.stage / C.CLASS_STAGES * 100}%"></div></div>
+    <p><b>Stufe ${k.stage} von ${C.CLASS_STAGES}</b> · Die Klasse hat ${k.total} Coins verdient.${k.next ? ` Nächste Stufe bei ${k.next} Coins.` : ''}</p>
+    <p>Dein Beitrag: <b>${S.earned} Coins</b>. Deine Lehrperson trägt den Stand der Klasse regelmässig nach. Speichere darum am Ende jeder Lektion.</p>`);
+}
+function info(title, html) {
+  paused = true; document.exitPointerLock?.();
+  $('#infoTitle').textContent = title; $('#infoBody').innerHTML = html; $('#infoPanel').hidden = false;
+}
+
 // ---------- Karte ----------
-const mapOrder = () => ['level', ...BUILDINGS.filter(b => worldData.meta[b.id]).map(b => b.id)];
+const mapOrder = () => ['level', ...BUILDINGS.filter(b => worldData.meta[b.id]).map(b => b.id), 'boss', 'klasse'];
+const mapSym = (id, i) => id === 'level' ? 'L' : id === 'boss' ? 'B' : id === 'klasse' ? 'K' : String(i);
+const mapCls = (id, m) => id === 'level' ? 'lv' : id === 'boss' ? 'boss' : id === 'klasse' ? 'kl' : 'lu' + m.b.lu;
 function showMap() {
   paused = true; document.exitPointerLock?.();
   const cv = $('#mapCanvas'), g = cv.getContext('2d'), sc = cv.width / SIZE, w = worldData.world;
@@ -284,22 +424,28 @@ function showMap() {
   g.font = 'bold 14px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
   mapOrder().forEach((id, i) => {
     const m = worldData.meta[id], X = (m.cx + 0.5) * sc, Z = (m.cz + 0.5) * sc;
-    g.fillStyle = id === 'level' ? '#e8b931' : m.b.lu === 11 ? '#a5432f' : '#6b5a2a';
+    g.fillStyle = id === 'level' ? '#e8b931' : id === 'boss' ? '#5a2a70' : id === 'klasse' ? '#b4322d' : m.b.lu === 11 ? '#a5432f' : '#6b5a2a';
     g.beginPath(); g.arc(X, Z, 13, 0, 7); g.fill(); g.lineWidth = 2; g.strokeStyle = '#000'; g.stroke();
-    g.fillStyle = id === 'level' ? '#000' : '#fff'; g.fillText(id === 'level' ? 'L' : String(i), X, Z + 1);
+    g.fillStyle = id === 'level' ? '#000' : '#fff'; g.fillText(mapSym(id, i), X, Z + 1);
   });
   g.save(); g.translate(player.x * sc, player.z * sc); g.rotate(player.yaw);
   g.fillStyle = '#ff2'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(-7, 8); g.closePath(); g.fill(); g.stroke(); g.restore();
   $('#mapLegend').innerHTML = mapOrder().map((id, i) => {
     const m = worldData.meta[id];
-    const name = id === 'level' ? 'Level-Turm' : m.b.name;
-    return `<li><button data-id="${id}"><span class="no ${id === 'level' ? 'lv' : 'lu' + m.b.lu}">${id === 'level' ? 'L' : i}</span>${esc(name)}${id === 'level' ? '' : `<small>LU ${m.b.lu} · ${stageProgress(id)}</small>`}</button></li>`;
+    const name = id === 'level' ? 'Level-Turm' : id === 'boss' ? 'Boss-Arena: ' + BOSSES[S.world].name : m.b.name;
+    const sub = id === 'level' ? '' : id === 'boss' ? (C.bossOpen(S, openWorlds, S.world) ? 'bereit' : 'schläft noch') : id === 'klasse' ? `Stufe ${C.classInfo(openWorlds).stage} von ${C.CLASS_STAGES}` : `LU ${m.b.lu} · ${C.buildingOpen(openWorlds, m.b) ? stageProgress(id) : 'gesperrt'}`;
+    return `<li><button data-id="${id}"><span class="no ${mapCls(id, m)}">${mapSym(id, i)}</span>${esc(name)}${sub ? `<small>${sub}</small>` : ''}</button></li>`;
   }).join('');
   $('#mapLegend').querySelectorAll('button').forEach(btn => btn.onclick = () => teleport(btn.dataset.id));
   $('#map').hidden = false;
 }
 function teleport(id) {
   const m = worldData.meta[id];
+  if (id === 'boss' || id === 'klasse') {
+    if (id === 'boss') { player.x = ARENA.x - ARENA.r - 1.5; player.z = ARENA.z + 0.5; player.yaw = Math.PI / 2; }
+    else { player.x = m.cx + 0.5; player.z = m.z0 - 1.5; player.yaw = Math.PI; }
+    player.y = G + 1.2; player.vy = 0; player.pitch = 0; $('#map').hidden = true; paused = false; return;
+  }
   const dz = m.door === 'S' ? m.z1 + 3 : m.z0 - 3;
   player.x = m.cx + 0.5; player.z = dz + 0.5; player.y = G + 1.2; player.vy = 0; player.pitch = 0;
   player.yaw = m.door === 'S' ? 0 : Math.PI;
@@ -315,11 +461,12 @@ function mapClick(ev) {
 function showHelp() { paused = true; document.exitPointerLock?.(); $('#help').hidden = false; }
 
 // ---------- Eingaben ----------
-function overlayOpen() { return !$('#panel').hidden || !$('#levelPanel').hidden || !$('#map').hidden || !$('#help').hidden; }
+function overlayOpen() { return !$('#panel').hidden || !$('#levelPanel').hidden || !$('#map').hidden || !$('#help').hidden || !$('#infoPanel').hidden || !$('#bossPanel').hidden; }
 function setupInput() {
   window.addEventListener('keydown', (e) => {
     if (!$('#login').hidden || !$('#welcome').hidden || !$('#worlds').hidden) return;
     const typing = e.target.tagName === 'INPUT';
+    if (!$('#bossPanel').hidden) { if (e.code === 'Escape') $('#bossBox [data-act=close]')?.click(); return; }
     if (e.code === 'Escape') { if (overlayOpen()) { $('#map').hidden = true; $('#help').hidden = true; closePanel(); } return; }
     if (!$('#panel').hidden) {
       if (e.code === 'Enter') { e.preventDefault(); if (current?.done) newTask(); else check(); }
@@ -345,7 +492,7 @@ function setupInput() {
     }
   });
   $('#checkBtn').onclick = check; $('#nextBtn').onclick = newTask; $('#hintBtn').onclick = showHint;
-  $('#closeBtn').onclick = closePanel; $('#lvClose').onclick = closePanel; $('#lvUp').onclick = levelUp;
+  $('#closeBtn').onclick = closePanel; $('#lvClose').onclick = closePanel; $('#lvUp').onclick = levelUp; $('#infoClose').onclick = closePanel;
   $('#mapBtn').onclick = showMap; $('#mapClose').onclick = () => { $('#map').hidden = true; paused = false; };
   $('#mapCanvas').onclick = mapClick;
   $('#helpBtn').onclick = showHelp; $('#helpClose').onclick = () => { $('#help').hidden = true; paused = false; };
@@ -378,3 +525,4 @@ function init() {
   };
 }
 init();
+

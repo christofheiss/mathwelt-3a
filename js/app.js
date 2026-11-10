@@ -2,6 +2,7 @@
 import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as C from './core.js';
+import { BOSSES, mountFight, bossSvg } from './boss.js';
 
 const VIA = 'app';
 const $ = (s) => document.querySelector(s);
@@ -20,6 +21,7 @@ async function tryLogin(raw) {
     const acc = await C.signIn(raw);
     token = acc.token; sKey = acc.sKey; S = acc.S;
     $('#login').hidden = true;
+    setTimeout(() => announceBadges(C.checkBadges(S, VIA)), 600);
     if (acc.isNew) { $('#welcomeId').textContent = S.id; $('#welcome').hidden = false; }
     else { start(); if (acc.fromOnline) toast('Dein online gespeicherter Lernstand wurde geladen.'); }
   } catch (e) { err.textContent = e.message; }
@@ -69,6 +71,9 @@ function updateTop() {
   $('#topCoins').textContent = S.coins;
   $('#saveBtn').classList.toggle('attention', S.unsavedSince >= 10);
 }
+function announceBadges(list) {
+  list.forEach((b, i) => setTimeout(() => toast(`${b.icon} ${b.tier === 'gold' ? 'Gold-Abzeichen' : 'Abzeichen'} «${b.name}» (${b.lz}) erhalten! +${b.coins} Coins`, 5000), i * 5200));
+}
 function toast(msg, ms = 3500) {
   const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => (t.hidden = true), ms);
 }
@@ -80,11 +85,12 @@ function route() {
   const [, view, arg] = location.hash.split('/');
   current = null;
   document.querySelectorAll('nav a').forEach(a => {
-    const on = a.dataset.nav === (view === 'thema' ? 'themen' : view || 'themen');
+    const on = a.dataset.nav === (view === 'thema' || view === 'boss' ? 'themen' : view || 'themen');
     a.classList.toggle('on', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
-  if (view === 'thema' && BYID[arg] && openWorlds[areaOf(BYID[arg]).id]) renderTopic(arg);
+  if (view === 'thema' && BYID[arg] && C.buildingOpen(openWorlds, BYID[arg])) renderTopic(arg);
+  else if (view === 'boss' && BOSSES[arg] && C.bossOpen(S, openWorlds, arg)) renderBoss(arg);
   else if (view === 'level') renderLevel();
   else if (view === 'stand') renderStand();
   else renderThemes();
@@ -94,7 +100,7 @@ function route() {
 // ---------- Themen ----------
 const solvedIn = (id) => [1, 2, 3].reduce((n, k) => n + S.stats[id][k].c, 0);
 function nextTopic() {
-  const open = BUILDINGS.filter(b => openWorlds[areaOf(b).id]);
+  const open = BUILDINGS.filter(b => C.buildingOpen(openWorlds, b));
   const unfinished = (b) => [1, 2, 3].some(k => S.stats[b.id][k].c < 3);
   const lastDone = [...S.log].reverse().find(l => BYID[l.b] && open.includes(BYID[l.b]) && unfinished(BYID[l.b]));
   return lastDone ? BYID[lastDone.b] : open.find(unfinished) || null;
@@ -121,11 +127,31 @@ function areaHtml(w) {
     <div class="areahead"><div><h2>${esc(w.name)}</h2><p class="small">${esc(w.sub)}</p></div>${open ? '' : '<span class="tag">Gesperrt</span>'}</div>
     ${open ? '' : '<p class="lockmsg">Deine Lehrperson schaltet dieses Themengebiet frei.</p>'}
     <ul class="topics">${topics.map(b => {
+      const tOpen = open && C.buildingOpen(openWorlds, b);
       const inner = `<span class="tname">${esc(b.topic)}</span><span class="tgoal">${esc(b.goal)}</span>
-        <span class="tstat"><span class="stars" aria-label="Niveaus geschafft: ${[1, 2, 3].filter(k => S.stats[b.id][k].c >= 3).length} von 3">${C.stageProgress(S, b.id)}</span> ${solvedIn(b.id)} richtig</span>`;
-      return `<li>${open ? `<a class="topic" href="#/thema/${b.id}">${inner}</a>` : `<div class="topic">${inner}</div>`}</li>`;
-    }).join('')}</ul>
+        <span class="tstat">${open && !tOpen ? 'noch gesperrt' : `<span class="stars" aria-label="Niveaus geschafft: ${[1, 2, 3].filter(k => S.stats[b.id][k].c >= 3).length} von 3">${C.stageProgress(S, b.id)}</span> ${solvedIn(b.id)} richtig`}</span>`;
+      return `<li>${tOpen ? `<a class="topic" href="#/thema/${b.id}">${inner}</a>` : `<div class="topic tlocked">${inner}</div>`}</li>`;
+    }).join('')}
+      ${open ? bossTopic(w.id) : ''}</ul>
   </section>`;
+}
+
+function bossTopic(w) {
+  const B = BOSSES[w], st = S.boss[w], ready = C.bossOpen(S, openWorlds, w), n = C.badgeCount(S, w);
+  const inner = `<span class="tname">Boss-Kampf: ${esc(B.name)}</span><span class="tgoal">${ready ? 'Alle Themen der Welt in drei Phasen' : `Erwacht, wenn deine Lehrperson ihn öffnet oder bei ${C.BOSS_BADGES} Abzeichen (du hast ${n})`}</span>
+    <span class="tstat">${st.wins ? `besiegt ✓ ${st.wins}×` : ready ? 'bereit' : 'schläft'}</span>`;
+  return `<li>${ready ? `<a class="topic boss" href="#/boss/${w}">${inner}</a>` : `<div class="topic tlocked">${inner}</div>`}</li>`;
+}
+
+// ---------- Boss ----------
+function renderBoss(w) {
+  $('#main').innerHTML = `<a class="back" href="#/themen">‹ Alle Themen</a><div id="bossRoot" class="panel bosspanel"></div>`;
+  mountFight($('#bossRoot'), S, w, VIA, {
+    pic: bossSvg, toast,
+    isOpen: (b) => C.buildingOpen(openWorlds, b),
+    save: async () => { updateTop(); await saveLocal(); },
+    close: () => { location.hash = '#/themen'; },
+  });
 }
 
 // ---------- Aufgaben ----------
@@ -179,9 +205,12 @@ async function check() {
   const r = C.gradeTask(S, current, vals, VIA), { stage: s, task: t } = current;
   if (r.finished) {
     fb.className = r.ok ? 'good' : 'bad';
+    const note = r.coins >= STAGES[s].coins ? '' : r.under ? ' (weniger Coins: Die App empfiehlt dir ein höheres Niveau. Probiere ★★!)' : ' (halbe Belohnung wegen Lösungshilfe oder zweitem Versuch)';
     fb.innerHTML = r.ok
-      ? `<b>Richtig!</b> +${r.coins} Coins${r.coins < STAGES[s].coins ? ' (halbe Belohnung wegen Lösungshilfe oder zweitem Versuch)' : ''}<div class="sol">${t.sol}</div>`
+      ? `<b>Richtig!</b> +${r.coins} Coins${note}<div class="sol">${t.sol}</div>${r.probe ? C.probeHtml(current) : ''}`
       : `<b>Leider nicht richtig.</b> So geht es:<div class="sol">${t.sol}</div>`;
+    if (r.probe) wireProbe();
+    announceBadges(r.badges);
     $('#checkBtn').hidden = true; $('#hintBtn').hidden = true; $('#nextBtn').hidden = false; $('#nextBtn').focus({ preventScroll: true });
     updateTop(); renderStages(); await saveLocal();
     if (S.unsavedSince === 10) toast(CONFIG.saveUrl ? 'Tipp: Speichere deinen Lernstand (Knopf «Speichern»).' : 'Tipp: Speichere deinen Lernstand als Datei (Knopf «Speichern»).', 5000);
@@ -191,6 +220,16 @@ async function check() {
     if (!current.hint) showHint();
   }
   $('.actions').scrollIntoView({ block: 'nearest' });   // Rückmeldung steht direkt darüber
+}
+function wireProbe() {
+  const go = async () => {
+    const r = C.gradeProbe(S, current, $('#probeIn').value); if (!r) return;
+    $('#probeIn').disabled = true; $('#probeBtn').disabled = true;
+    $('#probeMsg').innerHTML = r.ok ? `<b class="ok">Probe stimmt! +${r.coins} Coins</b>` : `Nicht ganz: Beide Seiten ergeben ${r.value}.`;
+    updateTop(); await saveLocal();
+  };
+  $('#probeBtn').onclick = go;
+  $('#probeIn').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if ($('#probeIn').value.trim()) go(); else newTask(); } };
 }
 function showHint() {
   current.hint = true; S.hints++;
@@ -206,12 +245,31 @@ function renderLevel() {
       <p>Der Aufstieg auf Level ${S.level + 1} (${esc(C.titleOf(S.level + 1))}) kostet <b>${cost} Coins</b>. Dein Level gilt auch im 3D-Spiel.</p>
       <button id="lvUp" class="primary" ${can ? '' : 'disabled'}>${can ? `Für ${cost} Coins aufsteigen` : `Noch ${cost - S.coins} Coins sammeln`}</button>
     </div>
-    <ol class="titles">${C.TITLES.map((t, i) => `<li class="${i + 1 <= S.level ? 'got' : ''}"><span>Level ${i + 1}</span>${esc(t)}</li>`).join('')}</ol>`;
+    <ol class="titles">${C.TITLES.map((t, i) => `<li class="${i + 1 <= S.level ? 'got' : ''}"><span>Level ${i + 1}</span>${esc(t)}</li>`).join('')}</ol>
+    <h2>Abzeichen</h2>
+    <p class="small">Ein Abzeichen pro Lernziel: ${C.BADGE_NEED.silver} Aufgaben ab ★★ im ersten Versuch ohne Lösungshilfe (+${C.BADGE_COINS.silver} Coins). Gold: ${C.BADGE_NEED.gold} davon auf ★★★ (+${C.BADGE_COINS.gold} Coins).</p>
+    ${badgesHtml()}
+    <h2>Shop</h2>
+    <p class="small">Nur fürs Aussehen, sichtbar im 3D-Spiel. Du entscheidest: aufsteigen oder etwas kaufen.</p>
+    <ul class="shop">${C.SHOP.map(it => {
+      const have = S.items.includes(it.id), on = S.equip[it.kind] === it.id;
+      return `<li><b>${esc(it.name)}</b><span class="small">${esc(it.desc)}</span>${have ? `<button data-eq="${it.id}">${on ? 'Ablegen' : 'Benutzen'}</button>` : `<button data-buy="${it.id}" ${S.coins >= it.price ? '' : 'disabled'}>${it.price} Coins</button>`}</li>`;
+    }).join('')}</ul>`;
+  $('#main').querySelectorAll('[data-buy]').forEach(b => b.onclick = async () => { if (C.buyItem(S, b.dataset.buy, VIA)) { updateTop(); await saveLocal(); renderLevel(); toast('Gekauft! Du siehst es im 3D-Spiel.'); } });
+  $('#main').querySelectorAll('[data-eq]').forEach(b => b.onclick = async () => { C.equipItem(S, b.dataset.eq); await saveLocal(); renderLevel(); });
   $('#lvUp').onclick = async () => {
     if (!C.buyLevel(S, VIA)) return;
     updateTop(); await saveLocal(); renderLevel();
     toast(`Gratuliere! Du bist jetzt Level ${S.level}: ${C.titleOf(S.level)}.`);
   };
+}
+
+function badgesHtml() {
+  return `<ul class="badges">${C.BADGES.map(b => {
+    const p = C.badgeProgress(S, b.lz), have = S.badges[b.lz] || {};
+    const sub = have.gold ? 'Gold!' : have.silver ? `Gold: ${p.gold} / ${C.BADGE_NEED.gold} auf ★★★` : `${p.silver} / ${C.BADGE_NEED.silver} ab ★★`;
+    return `<li class="${have.gold ? 'gold' : have.silver ? 'silver' : ''}" title="${esc(b.goal)}"><i>${b.icon}</i><b>${esc(b.name)}</b><span>${b.lz} · ${sub}</span></li>`;
+  }).join('')}</ul>`;
 }
 
 // ---------- Mein Stand ----------
@@ -230,6 +288,12 @@ function renderStand() {
       <div><b>${minutes} min</b><span>Lernzeit</span></div>
     </div>
     ${Object.values(WORLDS).map(w0 => `<h2>${esc(w0.name)}</h2><div class="tablewrap"><table><thead><tr><th scope="col">Richtig / bearbeitet</th><th scope="col">★</th><th scope="col">★★</th><th scope="col">★★★</th></tr></thead><tbody>${rows(w0)}</tbody></table></div>`).join('')}
+    <h2>Abzeichen</h2>${badgesHtml()}
+    <h2>Boss-Kämpfe</h2>
+    <div class="tiles">${Object.keys(BOSSES).map(w0 => { const st = S.boss[w0]; return `<div><b>${st.wins ? 'besiegt ✓' : '–'}</b><span>${esc(BOSSES[w0].name)} · ${st.fights} ${st.fights === 1 ? 'Kampf' : 'Kämpfe'}, ${st.wins} ${st.wins === 1 ? 'Sieg' : 'Siege'}</span></div>`; }).join('')}
+      <div><b>${S.probes.ok} / ${S.probes.n}</b><span>Proben richtig (Bonus)</span></div></div>
+    <h2>Klassen-Leuchtturm</h2>
+    ${(() => { const k = C.classInfo(openWorlds); return `<div class="panel"><div class="bar big" style="width:100%"><div style="width:${k.stage / C.CLASS_STAGES * 100}%"></div></div><p>Stufe ${k.stage} von ${C.CLASS_STAGES}: Die Klasse hat ${k.total} Coins verdient${k.next ? `, nächste Stufe bei ${k.next}` : ''}. Dein Beitrag: ${S.earned} Coins.</p></div>`; })()}
     <h2>Zuletzt gelöst</h2>
     ${recent ? `<ul class="recent">${recent}</ul>` : '<p class="small">Noch keine Aufgaben gelöst.</p>'}
     <h2>Konto</h2>
@@ -243,7 +307,8 @@ function renderStand() {
     </div>
     <details class="panel"><summary>So funktioniert die App</summary>
       <p>Jedes Thema hat Aufgaben auf drei Niveaus: <b>★ Grundanspruch</b> (5 Coins), <b>★★ Standard</b> (10 Coins) und <b>★★★ Erweiterung</b> (20 Coins). Die Erweiterung öffnet sich, wenn du 3 Standard-Aufgaben richtig gelöst hast.</p>
-      <p>Du hast zwei Versuche. Mit einer Lösungshilfe oder im zweiten Versuch gibt es die halbe Belohnung. Unter <b>Level</b> tauschst du Coins gegen ein höheres Level.</p>
+      <p>Du hast zwei Versuche. Mit einer Lösungshilfe oder im zweiten Versuch gibt es die halbe Belohnung. Auf ★, wenn die App schon ★★ empfiehlt, gibt es weniger Coins. Unter <b>Level</b> tauschst du Coins gegen ein höheres Level, siehst deine Abzeichen und den Shop.</p>
+      <p>Jede Welt hat einen <b>Boss</b>. Du besiegst ihn mit richtigen Antworten. Er erwacht, wenn deine Lehrperson ihn öffnet oder wenn du 3 Abzeichen der Welt hast.</p>
     </details>`;
   $('#fileBtn').onclick = downloadSave;
   $('#logoutBtn').onclick = async () => { await saveLocal(); history.replaceState(null, '', location.pathname); location.reload(); };

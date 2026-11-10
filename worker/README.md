@@ -55,3 +55,5 @@ Mit der Karte 3A99 spielen und «Speichern» klicken. Es muss «Spielstand onlin
 ## Worker-Code aktualisieren
 
 Bei Änderungen an `worker/worker.js`: bei Cloudflare den Worker öffnen → **Edit code** → alles durch den neuen Code ersetzen → **Deploy**. Die Variablen und das Secret bleiben erhalten. Die Freischaltung der Welten braucht keine zusätzliche Einstellung.
+
+Seit November 2026 speichert der Worker in `worlds.json` neben den Welten auch die Schalter pro Gebäude (`waage`, `klammer`, …), den Boss pro Welt (`boss_gl`, `boss_aj`) und die Coin-Summe der Klasse (`klasse`). Dafür den neuen Code einsetzen. Mit dem alten Code meldet die Masterview, dass die Änderung nicht übernommen wurde.

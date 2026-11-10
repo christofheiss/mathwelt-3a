@@ -32,6 +32,7 @@ function lin(a, b, v = 'x') {
 }
 const sgn = (n) => (n < 0 ? ' − ' + fmt(-n) : ' + ' + fmt(n));
 const vx = (c) => (c === 1 ? 'x' : c === -1 ? '−x' : fmt(c) + 'x');
+const fr = (n) => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
 const op = (s) => `<span class="op">| ${s}</span>`;
 
 // Antwort einlesen: «x = 2,5», «−3», «7/3», «12 %»
@@ -136,6 +137,24 @@ function scaleSvg(nx, a, b) {
     <text x="115" y="125" text-anchor="middle" font-size="13">${lin(nx, a)}</text>
     <text x="305" y="125" text-anchor="middle" font-size="13">${b}</text>
   </svg><div class="small">Orange = x, blau = 1 Einheit${a > 18 || b > 24 ? ' (nicht alle Einheiten gezeichnet)' : ''}</div>`;
+}
+
+// Wie viele Lösungen hat die Gleichung? (mathbuch S. 33 A10: unlösbar / allgemeingültig)
+function lsgCount() {
+  const a = ri(2, 6), b = nz(-6, 6), ab = a * b, kind = pick(['keine', 'eine', 'alle']);
+  const opts = ['keine Lösung (unlösbar)', 'genau eine Lösung', 'unendlich viele Lösungen (allgemeingültig)'];
+  const left = `${a}(${lin(1, b)})`;
+  const hint = 'Löse die Klammer auf und fasse jede Seite zusammen. Fallen alle x weg? Dann prüfe, ob die Aussage wahr (z. B. 6 = 6) oder falsch (z. B. 6 = 9) ist.';
+  if (kind === 'eine') {
+    let c; do { c = ri(1, 9); } while (c === a);
+    const x = nz(-6, 8), d = a * (x + b) - c * x;
+    return { q: `Wie viele Lösungen hat die Gleichung?<div class="eq">${left} = ${lin(c, d)}</div>`, kind: 'mc', options: opts, answer: 1, hint,
+      sol: `<div class="eq">${lin(a, ab)} = ${lin(c, d)} ${op('− ' + vx(c))}<br>${lin(a - c, ab)} = ${fmt(d)}</div>Es bleibt x übrig: genau eine Lösung (x = ${fmt(x)}).` };
+  }
+  const e = ri(1, 3), r = kind === 'alle' ? ab : ab + nz(-5, 5);
+  const right = `${lin(a + e, r)} − ${vx(e)}`;
+  return { q: `Wie viele Lösungen hat die Gleichung?<div class="eq">${left} = ${right}</div>`, kind: 'mc', options: opts, answer: kind === 'alle' ? 2 : 0, hint,
+    sol: `<div class="eq">${lin(a, ab)} = ${lin(a, r)} ${op('− ' + vx(a))}<br>${fmt(ab)} = ${fmt(r)}</div>${kind === 'alle' ? 'Die Aussage ist immer wahr: Jede Zahl ist eine Lösung (allgemeingültig).' : 'Die Aussage ist falsch: Keine Zahl erfüllt die Gleichung (unlösbar).'}` };
 }
 
 // ---------- Gebäude und Aufgaben ----------
@@ -246,11 +265,11 @@ export const BUILDINGS = [
   {
     id: 'klammer', lu: 11, name: 'Klammer-Mine', topic: 'Klammern und x auf beiden Seiten', lz: 'LZ1 · LZ4', color: 'BLUE',
     goal: 'Variable auf beiden Seiten und Gleichungen mit Klammern lösen',
-    ref: 'mathbuch 3, S. 30 Kärtchen 5 · S. 31 A5',
+    ref: 'mathbuch 3, S. 30 Kärtchen 5 · S. 31 A5 · S. 33 A10',
     gen(stage) {
       if (stage === 1) {
         const c = ri(1, 6), a = c + ri(1, 5), x = nz(-8, 10), b = nz(-15, 15), d = (a - c) * x + b;
-        return { q: `Löse die Gleichung (Variable auf beiden Seiten).<div class="eq">${lin(a, b)} = ${lin(c, d)}</div>`, kind: 'num', answer: x,
+        return { q: `Löse die Gleichung (Variable auf beiden Seiten).<div class="eq">${lin(a, b)} = ${lin(c, d)}</div>`, kind: 'num', answer: x, probe: c * x + d,
           hint: `Bringe alle x auf eine Seite: Rechne auf beiden Seiten − ${c}x.`,
           sol: `<div class="eq">${lin(a, b)} = ${lin(c, d)} ${op('− ' + vx(c))}<br>${lin(a - c, b)} = ${fmt(d)} ${op(b > 0 ? '− ' + b : '+ ' + (-b))}<br>${lin(a - c, 0)} = ${fmt(d - b)}${a - c !== 1 ? ' ' + op(': ' + (a - c)) + '<br>x = ' + fmt(x) : ''}</div>` };
       }
@@ -258,10 +277,11 @@ export const BUILDINGS = [
         const a = ri(2, 6), b = nz(-7, 7), c = ri(1, 9), x = nz(-6, 9);
         if (c === a) return this.gen(2);
         const d = a * (x + b) - c * x;
-        return { q: `Löse die Gleichung. Löse zuerst die Klammer auf.<div class="eq">${a}(${lin(1, b)}) = ${lin(c, d)}</div>`, kind: 'num', answer: x,
+        return { q: `Löse die Gleichung. Löse zuerst die Klammer auf.<div class="eq">${a}(${lin(1, b)}) = ${lin(c, d)}</div>`, kind: 'num', answer: x, probe: c * x + d,
           hint: `Klammer auflösen: ${a}·x und ${a}·${b < 0 ? '(' + fmt(b) + ')' : b}. Dann x auf eine Seite bringen.`,
           sol: `<div class="eq">${lin(a, a * b)} = ${lin(c, d)} ${op('− ' + vx(c))}<br>${lin(a - c, a * b)} = ${fmt(d)} ${op(a * b > 0 ? '− ' + a * b : '+ ' + (-a * b))}<br>${lin(a - c, 0)} = ${fmt(d - a * b)}${a - c !== 1 ? ' ' + op(': ' + (a - c < 0 ? '(' + fmt(a - c) + ')' : a - c)) + '<br>x = ' + fmt(x) : ''}</div>` };
       }
+      if (Math.random() < 0.35) return lsgCount();
       const a = ri(2, 6), b = nz(-6, 6), c = ri(2, 5), d = nz(-6, 6), e = ri(1, 6), x = nz(-6, 8);
       const k = a - c - e; if (k === 0) return this.gen(3);
       const f = a * (x + b) - c * (x - d) - e * x;
@@ -273,7 +293,7 @@ export const BUILDINGS = [
   {
     id: 'raetsel', lu: 11, name: 'Rätsel-Bibliothek', topic: 'Zahlenrätsel und Textgleichungen', lz: 'LZ3', color: 'BOOKS',
     goal: 'Sachsituationen und Zahlenrätsel in Gleichungen übersetzen',
-    ref: 'mathbuch 3, S. 32 A8 Zahlenrätsel',
+    ref: 'mathbuch 3, S. 31 A2 I Zaubertrick · S. 32 A8 Zahlenrätsel · Sachaufgaben (Abo-Vergleich)',
     gen(stage) {
       const a = ri(2, 7), b = ri(2, 15), x = ri(2, 15);
       const variants = [
@@ -281,6 +301,13 @@ export const BUILDINGS = [
         { t: `Wenn ich das ${['', '', 'Doppelte', 'Dreifache', 'Vierfache', 'Fünffache', 'Sechsfache', 'Siebenfache'][a]} einer Zahl um ${b} verkleinere, erhalte ich ${a * x - b}.`, eq: `${a}x − ${b} = ${a * x - b}`, wrong: [`${a}(x − ${b}) = ${a * x - b}`, `${b} − ${a}x = ${a * x - b}`, `${a}x + ${b} = ${a * x - b}`], ans: x },
         { t: `Ich addiere zu einer Zahl ${b} und multipliziere das Ergebnis mit ${a}. Ich erhalte ${a * (x + b)}.`, eq: `${a}(x + ${b}) = ${a * (x + b)}`, wrong: [`${a}x + ${b} = ${a * (x + b)}`, `x + ${b}·${a} = ${a * (x + b)}`, `${a}x = ${a * (x + b)} + ${b}`], ans: x }
       ];
+      if (stage === 1 && Math.random() < 0.3) {   // Zaubertrick aus L1 (mathbuch S. 31 A2 I)
+        const m = pick([2, 2, 3, 4, 5]), k = ri(2, 12);
+        const mult = { 2: 'Verdopple sie', 3: 'Verdreifache sie', 4: 'Multipliziere sie mit 4', 5: 'Multipliziere sie mit 5' }[m];
+        return { q: `Ein Zaubertrick: «Denke dir eine Zahl. ${mult}. Addiere ${m * k}. Teile das Ergebnis durch ${m}. Subtrahiere deine gedachte Zahl.»<br>Welche Zahl kommt <b>immer</b> heraus, egal welche Zahl man sich denkt?`, kind: 'num', answer: k,
+          hint: `Schreibe die gedachte Zahl als x und rechne mit dem Term weiter: ${m}x → ${m}x + ${m * k} → …`,
+          sol: `<div class="eq">x → ${m}x → ${m}x + ${m * k} → x + ${k} → x + ${k} − x = ${k}</div>Die gedachte Zahl fällt weg, darum kommt immer ${k} heraus.` };
+      }
       if (stage === 1) {
         const v = pick(variants); const opts = shuffle([v.eq, ...v.wrong]);
         return { q: `Welche Gleichung passt zum Rätsel?<div class="quote">${v.t}</div>`, kind: 'mc', options: opts, answer: opts.indexOf(v.eq),
@@ -292,7 +319,19 @@ export const BUILDINGS = [
         return { q: `Stelle eine Gleichung auf und löse sie. Wie heisst die gesuchte Zahl?<div class="quote">${v.t}</div>`, kind: 'num', answer: v.ans,
           hint: `Die Gleichung lautet ${v.eq}. Löse sie jetzt mit Umformungen.`, sol: `${v.eq} → x = ${v.ans}` };
       }
-      const t = pick(['mutter', 'folge', 'geschwister', 'zukunft']);
+      const t = pick(['mutter', 'folge', 'geschwister', 'zukunft', 'abo', 'eintritt']);
+      if (t === 'abo') {   // Handyabo-Vergleich wie in L9
+        const p = pick([0.05, 0.1, 0.15, 0.2]), d = pick([0.1, 0.2, 0.25, 0.5]), x = pick([20, 40, 60, 80, 100, 120, 200]), g = Math.round(d * x * 100) / 100, q = Math.round((p + d) * 100) / 100;
+        return { q: `<div class="quote">Abo A kostet ${fr(g)} Fr. Grundgebühr pro Monat und ${fr(p)} Fr. pro Minute. Abo B hat keine Grundgebühr und kostet ${fr(q)} Fr. pro Minute.</div>Bei wie vielen Minuten pro Monat kosten beide Abos gleich viel?`, kind: 'num', answer: x, unit: 'Minuten',
+          hint: `Minuten = x. Abo A: ${fr(g)} + ${fr(p)}x, Abo B: ${fr(q)}x. Setze die beiden Terme gleich.`,
+          sol: `<div class="eq">${fr(g)} + ${fr(p)}x = ${fr(q)}x ${op('− ' + fr(p) + 'x')}<br>${fr(g)} = ${fr(d)}x ${op(': ' + fr(d))}<br>x = ${x}</div>Bei ${x} Minuten kosten beide ${fr(q * x)} Fr.` };
+      }
+      if (t === 'eintritt') {
+        const e = ri(6, 12), r = ri(2, e - 2), x = ri(10, 30), J = (e - r) * x;
+        return { q: `<div class="quote">Ein Eintritt ins Hallenbad kostet ${e} Fr. Mit einer Jahreskarte für ${J} Fr. kostet jeder Eintritt nur noch ${r} Fr.</div>Bei wie vielen Eintritten kosten beide Varianten gleich viel?`, kind: 'num', answer: x, unit: 'Eintritte',
+          hint: `Eintritte = x. Ohne Karte: ${e}x, mit Karte: ${J} + ${r}x.`,
+          sol: `<div class="eq">${e}x = ${J} + ${r}x ${op('− ' + r + 'x')}<br>${e - r}x = ${J} ${op(': ' + (e - r))}<br>x = ${x}</div>` };
+      }
       if (t === 'mutter') {
         const k = ri(3, 5), kid = ri(6, 14), sum = kid * (k + 1);
         return { q: `<div class="quote">Eine Mutter ist ${k}-mal so alt wie ihre Tochter. Zusammen sind sie ${sum} Jahre alt.</div>Wie alt ist die Tochter?`, kind: 'num', answer: kid,

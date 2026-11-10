@@ -129,3 +129,14 @@ table.keys td { padding: 4px 8px; vertical-align: top; }
 .worldcard button { margin-top: auto; }
 .worldcard.locked { background: #e3dfd3; color: #555; }
 .lockmsg { margin-top: auto !important; font-weight: 600; }
+
+/* Boss-Kampf im Spiel: Fenster rechts, Boss links im Bild */
+#bossPanel { position: absolute; top: 0; right: 0; bottom: 0; width: min(560px, 100%); padding: 12px; display: flex; }
+#bossBox { width: 100%; max-height: none; height: 100%; }
+#bossBox h2 { font: 800 1.35rem var(--mono); }
+.label.boss { border-color: #823ca0; } .label.kl { border-color: #b4322d; }
+#mapLegend .no.boss { background: #5a2a70; } #mapLegend .no.kl { background: #b4322d; }
+.hbadge { margin-left: auto; font-size: .9rem; }
+#lvBody h3, #infoBody h3 { margin: 12px 0 6px; font: 800 1.1rem var(--mono); }
+.worldcard.classcard { grid-column: 1 / -1; }
+@media (max-width: 800px) { #bossPanel { width: 100%; top: auto; height: 70%; } }

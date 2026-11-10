@@ -17,6 +17,9 @@ const SPOTS = {
 };
 export const PLAZA = { x: 36, z: 36 };
 export const LEVEL_TOWER = { id: 'level', name: 'Level-Turm', x: 36, z: 22, door: 'S' };
+// Boss-Arena im Nordosten (Weg vom Hauptweg nördlich am Level-Turm vorbei) und Klassen-Leuchtturm im Südwesten
+export const ARENA = { id: 'boss', name: 'Boss-Arena', x: 58, z: 14, r: 7 };
+export const CLASS_TOWER = { id: 'klasse', name: 'Klassen-Leuchtturm', x: 14, z: 54 };
 
 function building(w, cx, cz, door, wall, accent, roof, h = 5, half = 4) {
   const x0 = cx - half, x1 = cx + half, z0 = cz - half, z1 = cz + half;
@@ -53,7 +56,26 @@ function tree(w, x, z) {
   w.fill(x, G + 1, z, x, G + h, z, B.LOG);
 }
 
-export function buildWorld(level = 1, worldId = 'gl') {
+function arena(w) {
+  const { x: ax, z: az, r } = ARENA;
+  for (let z = az - r - 1; z <= az + r + 1; z++) for (let x = ax - r - 1; x <= ax + r + 1; x++) {
+    const d = Math.hypot(x - ax, z - az);
+    if (d <= r + 0.5) { w.fill(x, G + 1, z, x, HEIGHT - 1, z, B.AIR); w.set(x, G, z, d > r - 1.5 ? B.STONE : (x + z) % 2 ? B.COBBLE : B.STONE); }
+  }
+  // Säulen mit Laternen im Kreis, Lücke im Westen als Eingang
+  for (let k = 0; k < 10; k++) {
+    const a = k / 10 * Math.PI * 2; if (Math.abs(Math.cos(a) + 1) < 0.2) continue;
+    const x = Math.round(ax + Math.cos(a) * r), z = Math.round(az + Math.sin(a) * r);
+    w.fill(x, G + 1, z, x, G + 4, z, B.COBBLE); w.set(x, G + 5, z, B.LAMP);
+  }
+  // Sockel des Bosses
+  w.fill(ax - 1, G, az - 1, ax + 1, G, az + 1, B.GOLD);
+  // Weg vom Hauptweg (x = 35–37) zur Arena
+  w.fill(38, G, az - 1, ax - r, G, az + 1, B.PATH);
+  return { x0: ax - r + 1, x1: ax + r, z0: az - r + 1, z1: az + r, cx: ax, cz: az, door: 'S', signY: G + 9 };
+}
+
+export function buildWorld(level = 1, worldId = 'gl', opts = {}) {
   seed = worldId === 'aj' ? 54321 : 12345;
   const w = new World(SIZE, HEIGHT, SIZE);
   // Gelände
@@ -91,7 +113,16 @@ export function buildWorld(level = 1, worldId = 'gl') {
     meta.level = { ...r, cx: x, cz: z, door: 'S', b: LEVEL_TOWER };
   }
   // Ruhmes-Säule auf dem Platz: wächst mit dem Level
-  setFamePillar(w, level);
+  setFamePillar(w, level, opts.top);
+  // Boss-Arena und Klassen-Leuchtturm
+  meta.boss = { ...arena(w), b: ARENA };
+  {
+    const { x, z } = CLASS_TOWER;
+    w.fill(x - 3, G, z - 3, x + 3, G, z + 3, B.COBBLE); w.fill(x - 2, G + 1, z - 2, x + 2, G + 1, z + 2, B.STONE);
+    w.fill(x, G, z - 4, x + 1, G, 38, B.PATH);   // Weg nach Norden zum Hauptweg
+    const top = setClassTower(w, opts.classStage || 0);
+    meta.klasse = { x0: x - 4, x1: x + 3, z0: z - 4, z1: z + 3, cx: x, cz: z, door: 'S', signY: top + 2, b: CLASS_TOWER };
+  }
   // Teich in der Welt «Alt und Jung»
   if (worldId === 'aj') { w.fill(60, G, 58, 66, G, 63, B.WATER); w.fill(61, G, 57, 65, G, 57, B.WATER); }
   // Bäume
@@ -100,6 +131,10 @@ export function buildWorld(level = 1, worldId = 'gl') {
     if (Math.abs(z - 36) < 4 || Math.abs(x - 36) < 4) return true;
     for (const m of Object.values(meta)) if (x > m.x0 - 4 && x < m.x1 + 4 && z > m.z0 - 4 && z < m.z1 + 4) return true;
     if (x > 57 && z > 54 && x < 69 && z < 66) return true;
+    if (x > ARENA.x - ARENA.r - 3 && z > ARENA.z - ARENA.r - 3 && z < ARENA.z + ARENA.r + 3) return true;     // Arena
+    if (x > 36 && Math.abs(z - ARENA.z) < 4) return true;                                                     // Weg zur Arena
+    if (Math.abs(x - CLASS_TOWER.x) < 7 && Math.abs(z - CLASS_TOWER.z) < 7) return true;                       // Leuchtturm
+    if (Math.abs(x - CLASS_TOWER.x) < 4 && z > 36 && z < CLASS_TOWER.z) return true;
     return x < 6 || z < 6 || x > SIZE - 7 || z > SIZE - 7;
   };
   for (let i = 0; i < 70; i++) {
@@ -115,12 +150,25 @@ export function buildWorld(level = 1, worldId = 'gl') {
   return { world: w, meta };
 }
 
-export function setFamePillar(w, level) {
+// Spitze der Säule aus dem Shop
+const TOPS = { top_kristall: B.CYAN, top_flamme: B.ORANGE, top_rose: B.PINK };
+export function setFamePillar(w, level, top = null) {
   const x = 36, z = 36;
   w.fill(x, G + 2, z, x, HEIGHT - 1, z, B.AIR);
   const h = Math.min(level, HEIGHT - G - 4);
   w.fill(x, G + 2, z, x, G + 1 + h, z, B.GOLD);
-  w.set(x, G + 2 + h, z, B.LAMP);
+  w.set(x, G + 2 + h, z, TOPS[top] ?? B.LAMP);
+}
+
+// Klassen-Leuchtturm: wächst um 2 Blöcke pro Stufe (0–10), rot-weiss gestreift, ganz oben ein Licht
+export function setClassTower(w, stage) {
+  const { x, z } = CLASS_TOWER;
+  w.fill(x - 1, G + 2, z - 1, x + 1, HEIGHT - 1, z + 1, B.AIR);
+  for (let k = 0; k < stage; k++) w.fill(x - 1, G + 2 + 2 * k, z - 1, x + 1, G + 3 + 2 * k, z + 1, k % 2 ? B.RED : B.WHITE);
+  const top = G + 2 + 2 * stage;
+  if (stage >= 10) { w.fill(x - 1, top - 1, z - 1, x + 1, top - 1, z + 1, B.GOLD); w.set(x, top - 1, z, B.LAMP); }
+  else w.set(x, top, z, B.LAMP);
+  return top;
 }
 
 // In welchem Gebäude steht die Spielfigur?

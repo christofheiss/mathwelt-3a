@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MathWelt 3A</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/extras.css">
 </head>
 <body>
 
@@ -60,7 +61,7 @@
 
   <div id="hud">
     <div class="who"><span id="hudId"></span><span id="hudLevel"></span></div>
-    <div class="coins"><i class="coin"></i><b id="hudCoins">0</b> Coins</div>
+    <div class="coins"><i class="coin"></i><b id="hudCoins">0</b> Coins <span class="hbadge" title="Abzeichen">🏅 <b id="hudBadges"></b></span></div>
     <div class="bar"><div id="hudBar"></div></div>
     <div id="hudNext" class="small"></div>
   </div>
@@ -102,6 +103,17 @@
     </div>
   </div>
 
+  <!-- Info (Boss schläft, Klassen-Leuchtturm) -->
+  <div id="infoPanel" class="overlay" hidden>
+    <div class="window narrow">
+      <header><h2 id="infoTitle"></h2><button id="infoClose" class="x">Zurück in die Welt</button></header>
+      <div id="infoBody"></div>
+    </div>
+  </div>
+
+  <!-- Boss-Kampf: Fenster rechts, der Boss bleibt links im Bild sichtbar -->
+  <div id="bossPanel" hidden><div id="bossBox" class="window"></div></div>
+
   <!-- Karte -->
   <div id="map" class="overlay" hidden>
     <div class="window">
@@ -124,7 +136,9 @@
         <tr><td><kbd>M</kbd> · <kbd>H</kbd></td><td>Karte · Hilfe</td></tr>
       </table>
       <p>In jedem Gebäude gibt es Aufgaben auf drei Niveaus: <b>★ Grundanspruch</b> (5 Coins), <b>★★ Standard</b> (10 Coins) und <b>★★★ Erweiterung</b> (20 Coins). Die Erweiterung öffnet sich, wenn du 3 Standard-Aufgaben richtig gelöst hast.</p>
-      <p>Mit einer Lösungshilfe oder im zweiten Versuch gibt es die halbe Belohnung. Im <b>Level-Turm</b> tauschst du Coins gegen ein höheres Level.</p>
+      <p>Mit einer Lösungshilfe oder im zweiten Versuch gibt es die halbe Belohnung. Unter dem empfohlenen Niveau gibt es weniger Coins. Nach einer richtigen Gleichung kannst du mit der <b>Probe</b> 2 Bonus-Coins holen.</p>
+      <p>Im <b>Level-Turm</b> tauschst du Coins gegen ein höheres Level oder kaufst im Shop etwas fürs Aussehen. Dort siehst du auch deine <b>Abzeichen</b>: eines pro Lernziel.</p>
+      <p>In der <b>Boss-Arena</b> (Karte: B) wartet ein Boss. Du besiegst ihn mit richtigen Antworten. Er erwacht, wenn deine Lehrperson die Arena öffnet oder wenn du 3 Abzeichen der Welt hast. Am <b>Klassen-Leuchtturm</b> (K) baut die ganze Klasse mit ihren Coins.</p>
       <p><b>Wichtig:</b> Dein Spiel wird auf diesem Gerät gespeichert. <span id="helpSave">Klicke am Ende der Lektion auf <b>Speichern</b> und gib die Datei ab.</span></p>
     </div>
   </div>

@@ -9,7 +9,8 @@ for (const b of BUILDINGS.filter(b => !['pyramide', 'zeit'].includes(b.id))) for
       if (p.kind === 'mc') { if (!(p.answer >= 0 && p.answer < p.options.length)) { bad++; console.log('mc', b.id, s); } }
       else if (!Number.isFinite(p.answer) || !checkPart(p, String(p.answer).replace('.', ','))) { bad++; console.log('num', b.id, s, p.answer); }
     }
-    if (/NaN|undefined/.test(t.q + t.sol + t.hint)) { bad++; console.log('text', b.id, s); }
+    if (t.probe !== undefined && !Number.isFinite(t.probe)) { bad++; console.log('probe', b.id, s); }
+    if (/NaN|undefined|Infinity/.test((t.q + t.sol + t.hint).replace(/src="data:[^"]+"/g, ''))) { bad++; console.log('text', b.id, s); }
   } catch (e) { bad++; console.log('ERR', b.id, s, e.message); }
 }
 console.log(bad ? `${bad} Probleme gefunden` : 'Alle Generatoren ok');
