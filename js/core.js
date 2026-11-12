@@ -30,11 +30,19 @@ export function newState(id) {
   migrate(st);
   return st;
 }
+// Alte Lernziel-Nummern (LU 11 zuerst) → neue (LU 10 zuerst)
+const LZ_OLD_TO_NEW = { LZ1: 'LZ5', LZ2: 'LZ6', LZ3: 'LZ7', LZ4: 'LZ8', LZ5: 'LZ1', LZ6: 'LZ2', LZ7: 'LZ3', LZ8: 'LZ4' };
 const emptyBoss = () => ({ fights: 0, wins: 0, right: [0, 0, 0], wrong: [0, 0, 0], best: null, last: null });
 export function migrate(st) {
   st.posBy = st.posBy || {}; delete st.pos;   // alte Position passt nicht mehr zu den neuen Karten
   for (const b of BUILDINGS) if (!st.stats[b.id]) st.stats[b.id] = emptyStats();
   st.badges = st.badges || {};                 // { LZ1: { silver: Zeit, gold: Zeit } }
+  // Lernziele wurden umnummeriert (LU 10 zuerst): alte Abzeichen-Schlüssel übernehmen
+  if (st.lzv !== 2) {
+    const neu = {};
+    for (const [k, v] of Object.entries(st.badges)) { const n = LZ_OLD_TO_NEW[k] || k; neu[n] = { ...neu[n], ...v }; }
+    st.badges = neu; st.lzv = 2;
+  }
   st.items = st.items || [];                   // gekaufte Gegenstände aus dem Shop
   st.equip = st.equip || { pet: null, top: null };
   st.probes = st.probes || { ok: 0, n: 0 };    // Probe-Bonus
@@ -243,15 +251,15 @@ export function gradeProbe(S, cur, value) {
 
 // ---------- Abzeichen pro Lernziel ----------
 // Abzeichen: 5 Aufgaben ab ★★ im ersten Versuch ohne Lösungshilfe. Gold: 3 solche Aufgaben auf ★★★.
-export const BADGES = [   // Anzeige in der Reihenfolge des Unterrichts: zuerst LU 10 (LZ5–LZ8)
-  { lz: 'LZ5', name: 'Pyramiden-Leser/in', icon: '📊', w: 'aj', goal: 'Alterspyramiden lesen' },
-  { lz: 'LZ6', name: 'Prozent-Profi', icon: '％', w: 'aj', goal: 'Absolute und relative Zahlen' },
-  { lz: 'LZ7', name: 'Trend-Späher/in', icon: '📈', w: 'aj', goal: 'Entwicklungen aus Graphen lesen' },
-  { lz: 'LZ8', name: 'Faktenchecker/in', icon: '📰', w: 'aj', goal: 'Aussagen prüfen, kritisch fragen' },
-  { lz: 'LZ1', name: 'Umform-Ass', icon: '⚖️', w: 'gl', goal: 'Gleichungen mit Umformungen lösen' },
-  { lz: 'LZ2', name: 'Proben-Profi', icon: '✅', w: 'gl', goal: 'Lösungen mit der Probe prüfen' },
-  { lz: 'LZ3', name: 'Rätselknacker/in', icon: '🧩', w: 'gl', goal: 'Sachsituationen in Gleichungen übersetzen' },
-  { lz: 'LZ4', name: 'Fehlerdetektiv/in', icon: '🔍', w: 'gl', goal: 'Schritte notieren und Fehler finden' },
+export const BADGES = [   // Anzeige in der Reihenfolge des Unterrichts: zuerst LU 10 (LZ1–LZ4)
+  { lz: 'LZ1', name: 'Pyramiden-Leser/in', icon: '📊', w: 'aj', goal: 'Alterspyramiden lesen' },
+  { lz: 'LZ2', name: 'Prozent-Profi', icon: '％', w: 'aj', goal: 'Absolute und relative Zahlen' },
+  { lz: 'LZ3', name: 'Trend-Späher/in', icon: '📈', w: 'aj', goal: 'Entwicklungen aus Graphen lesen' },
+  { lz: 'LZ4', name: 'Faktenchecker/in', icon: '📰', w: 'aj', goal: 'Aussagen prüfen, kritisch fragen' },
+  { lz: 'LZ5', name: 'Umform-Ass', icon: '⚖️', w: 'gl', goal: 'Gleichungen mit Umformungen lösen' },
+  { lz: 'LZ6', name: 'Proben-Profi', icon: '✅', w: 'gl', goal: 'Lösungen mit der Probe prüfen' },
+  { lz: 'LZ7', name: 'Rätselknacker/in', icon: '🧩', w: 'gl', goal: 'Sachsituationen in Gleichungen übersetzen' },
+  { lz: 'LZ8', name: 'Fehlerdetektiv/in', icon: '🔍', w: 'gl', goal: 'Schritte notieren und Fehler finden' },
 ];
 export const BADGE_NEED = { silver: 5, gold: 3 }, BADGE_COINS = { silver: 15, gold: 25 };
 const hasLz = (b, lz) => b.lz.split(' · ').includes(lz);

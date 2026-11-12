@@ -2,7 +2,7 @@
 import { BUILDINGS, STAGES, WORLDS } from './tasks.js';
 import { CONFIG } from './config.js';
 import * as K from './crypto.js';
-import { titleOf, BADGES, CLASS_STAGES, classInfo } from './core.js';
+import { titleOf, BADGES, CLASS_STAGES, classInfo, migrate } from './core.js';
 import { BOSSES } from './boss.js';
 
 const $ = (s) => document.querySelector(s);
@@ -41,6 +41,7 @@ async function addSave(text) {
   const data = JSON.parse(text);
   if (data.app !== 'mathwelt-3a') throw new Error('keine MathWelt-Datei');
   const st = await K.openSaveAsTeacher(data, priv);
+  migrate(st);                         // ergänzt neue Felder, übernimmt alte Abzeichen-Nummern
   const prev = students.get(st.id);
   if (!prev || (st.lastSave || 0) >= (prev.lastSave || 0)) students.set(st.id, st);
 }

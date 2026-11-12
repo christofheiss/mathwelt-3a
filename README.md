@@ -22,16 +22,16 @@ Beim Anmelden wird der neuste Stand geholt: lokal oder online, je nachdem, wo zu
 
 | LU | Gebäude | Lernziel | mathbuch 3 |
 |---|---|---|---|
-| 11 | Waage-Werkstatt | LZ1 Gleichungen mit + und − | S. 30 Lösungshilfen, S. 31 A2–A4 |
-| 11 | Umkehr-Turm | LZ1 Gleichungen mit · und :, ax + b = c | S. 30 Kärtchen 3/4, S. 31 A2–A3 |
-| 11 | Proben-Labor | LZ2 Probe | S. 32 A6 B, A7 |
-| 11 | Klammer-Mine | LZ1/LZ4 Variable auf beiden Seiten, Klammern, unlösbar/allgemeingültig | S. 31 A5, S. 33 A10 |
-| 11 | Rätsel-Bibliothek | LZ3 Zaubertrick, Zahlenrätsel, Textgleichungen, Abo- und Tarifvergleich | S. 31 A2 I, S. 32 A8 |
-| 11 | Detektiv-Büro | LZ4 Fehler in Lösungswegen finden | S. 32 A6 A |
-| 10 | Pyramiden-Museum | LZ5 Alterspyramiden lesen | S. 26 A1, S. 27 A3 |
-| 10 | Prozent-Markt | LZ6 absolut und relativ | S. 28 A7, S. 29 A8 |
-| 10 | Zeit-Observatorium | LZ7 Entwicklungen aus Graphen | S. 28 A6/A7, S. 29 A8 |
-| 10 | Faktencheck-Redaktion | LZ8 Aussagen prüfen, kritische Fragen | S. 27 A4, S. 28 A6 |
+| 11 | Waage-Werkstatt | LZ5 Gleichungen mit + und − | S. 30 Lösungshilfen, S. 31 A2–A4 |
+| 11 | Umkehr-Turm | LZ5 Gleichungen mit · und :, ax + b = c | S. 30 Kärtchen 3/4, S. 31 A2–A3 |
+| 11 | Proben-Labor | LZ6 Probe | S. 32 A6 B, A7 |
+| 11 | Klammer-Mine | LZ5/LZ8 Variable auf beiden Seiten, Klammern, unlösbar/allgemeingültig | S. 31 A5, S. 33 A10 |
+| 11 | Rätsel-Bibliothek | LZ7 Zaubertrick, Zahlenrätsel, Textgleichungen, Abo- und Tarifvergleich | S. 31 A2 I, S. 32 A8 |
+| 11 | Detektiv-Büro | LZ8 Fehler in Lösungswegen finden | S. 32 A6 A |
+| 10 | Pyramiden-Museum | LZ1 Alterspyramiden lesen | S. 26 A1, S. 27 A3 |
+| 10 | Prozent-Markt | LZ2 absolut und relativ | S. 28 A7, S. 29 A8 |
+| 10 | Zeit-Observatorium | LZ3 Entwicklungen aus Graphen | S. 28 A6/A7, S. 29 A8 |
+| 10 | Faktencheck-Redaktion | LZ4 Aussagen prüfen, kritische Fragen | S. 27 A4, S. 28 A6 |
 
 ## Binnendifferenzierung
 
@@ -71,7 +71,7 @@ Reihenfolge: zuerst **LU 10** (L1–L10, Prüfung LU 10 in L10), dann **LU 11** 
 | W1 Mi L3 | absolut und relativ | Prozent-Markt öffnen |
 | W1 Fr L4–L5 | eigene Daten darstellen · Entwicklungen | (L4 bewusst ohne) · Zeit-Observatorium öffnen |
 | W2 Mo L6–L7 | Aussagen prüfen · Schlagzeilen | Faktencheck-Redaktion öffnen · **Orakel wecken** |
-| W2 Mi L8 | formative Lernkontrolle LU 10 | Kacheln LZ5–LZ8 und Boss-Statistik ansehen |
+| W2 Mi L8 | formative Lernkontrolle LU 10 | Kacheln LZ1–LZ4 und Boss-Statistik ansehen |
 | W2 Fr L9 | Repetition LU 10 (Posten) | Posten «MathWelt» nach Boss-Phase zuteilen |
 | W2 Fr L10 | **Prüfung LU 10** | – |
 | W3 Mo L11–L12 | Zaubertrick, Waagemodell · ax + b = c | Welt **Gleichungen** öffnen: Waage-Werkstatt, Rätsel-Bibliothek · Umkehr-Turm |

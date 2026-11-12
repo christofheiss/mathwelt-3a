@@ -57,9 +57,9 @@ Sprache der Oberfläche: **Deutsch (Schweiz, kein ß)**. Zielgeräte: Laptops mi
 - Beim Anmelden gewinnt der Stand mit der jüngsten gelösten Aufgabe (nicht `lastSave`, das ändert schon beim Öffnen). Kein Zusammenführen: Ungespeichertes auf einem anderen Gerät wird nicht übernommen.
 
 ### Gebäude ↔ Lernziele
-LU 11: Waage-Werkstatt LZ1 · Umkehr-Turm LZ1 · Proben-Labor LZ2 · Klammer-Mine LZ1/LZ4 · Rätsel-Bibliothek LZ3 · Detektiv-Büro LZ4
-LU 10: Pyramiden-Museum LZ5 · Prozent-Markt LZ6 · Zeit-Observatorium LZ7 · Faktencheck-Redaktion LZ8
-Lernziele: LZ1 Äquivalenzumformungen, LZ2 Probe, LZ3 Sachsituation → Gleichung, LZ4 Schritte dokumentieren/Fehler finden, LZ5 Alterspyramiden lesen, LZ6 absolut/relativ, LZ7 Entwicklungen aus Graphen, LZ8 Aussagen prüfen/kritische Fragen. Alle Gemeinde-Daten sind fiktiv und so beschriftet.
+LU 10: Pyramiden-Museum LZ1 · Prozent-Markt LZ2 · Zeit-Observatorium LZ3 · Faktencheck-Redaktion LZ4
+LU 11: Waage-Werkstatt LZ5 · Umkehr-Turm LZ5 · Proben-Labor LZ6 · Klammer-Mine LZ5/LZ8 · Rätsel-Bibliothek LZ7 · Detektiv-Büro LZ8
+Lernziele (Nummern in der Reihenfolge des Unterrichts, seit November 2026): LZ1 Alterspyramiden lesen, LZ2 absolut/relativ, LZ3 Entwicklungen aus Graphen, LZ4 Aussagen prüfen/kritische Fragen, LZ5 Äquivalenzumformungen, LZ6 Probe, LZ7 Sachsituation → Gleichung, LZ8 Schritte dokumentieren/Fehler finden. Ältere Spielstände (ohne `lzv: 2`) haben Abzeichen unter den alten Nummern; `migrate` übernimmt sie. Alle Gemeinde-Daten sind fiktiv und so beschriftet.
 
 ## Lokal starten und testen
 ```bash

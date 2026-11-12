@@ -161,7 +161,7 @@ function lsgCount() {
 export const BUILDINGS = [
   // LU 10 Alt und Jung
   {
-    id: 'pyramide', lu: 10, name: 'Pyramiden-Museum', topic: 'Alterspyramiden lesen', lz: 'LZ5', color: 'SANDSTONE',
+    id: 'pyramide', lu: 10, name: 'Pyramiden-Museum', topic: 'Alterspyramiden lesen', lz: 'LZ1', color: 'SANDSTONE',
     goal: 'Alterspyramiden lesen und interpretieren',
     ref: 'mathbuch 3, S. 26 A1 · S. 27 A3',
     gen(stage) {
@@ -219,7 +219,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'prozent', lu: 10, name: 'Prozent-Markt', topic: 'Absolut und relativ', lz: 'LZ6', color: 'GREEN',
+    id: 'prozent', lu: 10, name: 'Prozent-Markt', topic: 'Absolut und relativ', lz: 'LZ2', color: 'GREEN',
     goal: 'Absolute und relative Angaben unterscheiden und berechnen',
     ref: 'mathbuch 3, S. 28 A7 · S. 29 A8',
     gen(stage) {
@@ -255,7 +255,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'zeit', lu: 10, name: 'Zeit-Observatorium', topic: 'Entwicklungen aus Graphen', lz: 'LZ7', color: 'PURPLE',
+    id: 'zeit', lu: 10, name: 'Zeit-Observatorium', topic: 'Entwicklungen aus Graphen', lz: 'LZ3', color: 'PURPLE',
     goal: 'Entwicklungen aus Tabellen und Graphen ablesen und beschreiben',
     ref: 'mathbuch 3, S. 28 A6 (G, D), A7 · S. 29 A8',
     gen(stage) {
@@ -303,7 +303,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'fakten', lu: 10, name: 'Faktencheck-Redaktion', topic: 'Aussagen prüfen', lz: 'LZ8', color: 'RED',
+    id: 'fakten', lu: 10, name: 'Faktencheck-Redaktion', topic: 'Aussagen prüfen', lz: 'LZ4', color: 'RED',
     goal: 'Statistische Aussagen mit Daten prüfen und kritisch hinterfragen',
     ref: 'mathbuch 3, S. 27 A4 · S. 28 A6 · S. 29 A8',
     gen(stage) {
@@ -352,7 +352,7 @@ export const BUILDINGS = [
   },
   // LU 11 Gleichungen lösen
   {
-    id: 'waage', lu: 11, name: 'Waage-Werkstatt', topic: 'Gleichungen mit + und −', lz: 'LZ1', color: 'YELLOW',
+    id: 'waage', lu: 11, name: 'Waage-Werkstatt', topic: 'Gleichungen mit + und −', lz: 'LZ5', color: 'YELLOW',
     goal: 'Gleichungen mit + und − lösen (Waagemodell, Umformung 1 und 2)',
     ref: 'mathbuch 3, S. 30 Lösungshilfen · S. 31 A2–A4',
     gen(stage) {
@@ -397,7 +397,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'umkehr', lu: 11, name: 'Umkehr-Turm', topic: 'Gleichungen mit · und :', lz: 'LZ1', color: 'ORANGE',
+    id: 'umkehr', lu: 11, name: 'Umkehr-Turm', topic: 'Gleichungen mit · und :', lz: 'LZ5', color: 'ORANGE',
     goal: 'Gleichungen mit · und : sowie ax + b = c lösen (Umformung 3 und 4)',
     ref: 'mathbuch 3, S. 30 Kärtchen 3 und 4 · S. 31 A2 E–H, A3',
     gen(stage) {
@@ -430,7 +430,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'probe', lu: 11, name: 'Proben-Labor', topic: 'Die Probe', lz: 'LZ2', color: 'CYAN',
+    id: 'probe', lu: 11, name: 'Proben-Labor', topic: 'Die Probe', lz: 'LZ6', color: 'CYAN',
     goal: 'Eine Lösung mit der Probe überprüfen',
     ref: 'mathbuch 3, S. 32 A6 B, A7',
     gen(stage) {
@@ -454,7 +454,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'klammer', lu: 11, name: 'Klammer-Mine', topic: 'Klammern und x auf beiden Seiten', lz: 'LZ1 · LZ4', color: 'BLUE',
+    id: 'klammer', lu: 11, name: 'Klammer-Mine', topic: 'Klammern und x auf beiden Seiten', lz: 'LZ5 · LZ8', color: 'BLUE',
     goal: 'Variable auf beiden Seiten und Gleichungen mit Klammern lösen',
     ref: 'mathbuch 3, S. 30 Kärtchen 5 · S. 31 A5 · S. 33 A10',
     gen(stage) {
@@ -482,7 +482,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'raetsel', lu: 11, name: 'Rätsel-Bibliothek', topic: 'Zahlenrätsel und Textgleichungen', lz: 'LZ3', color: 'BOOKS',
+    id: 'raetsel', lu: 11, name: 'Rätsel-Bibliothek', topic: 'Zahlenrätsel und Textgleichungen', lz: 'LZ7', color: 'BOOKS',
     goal: 'Sachsituationen und Zahlenrätsel in Gleichungen übersetzen',
     ref: 'mathbuch 3, S. 31 A2 I Zaubertrick · S. 32 A8 Zahlenrätsel · Sachaufgaben (Abo-Vergleich)',
     gen(stage) {
@@ -544,7 +544,7 @@ export const BUILDINGS = [
     }
   },
   {
-    id: 'detektiv', lu: 11, name: 'Detektiv-Büro', topic: 'Fehler in Lösungswegen finden', lz: 'LZ4', color: 'DARKWOOD',
+    id: 'detektiv', lu: 11, name: 'Detektiv-Büro', topic: 'Fehler in Lösungswegen finden', lz: 'LZ8', color: 'DARKWOOD',
     goal: 'Fehler in Lösungswegen finden und korrigieren',
     ref: 'mathbuch 3, S. 32 A6 A (Lösungswege überprüfen)',
     gen(stage) {
