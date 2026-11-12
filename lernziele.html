@@ -22,6 +22,8 @@
   nav.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
   nav.tabs a, .btn { font: 700 .9rem var(--sans); text-decoration: none; color: var(--ink); background: #d8d4c8; border: 2px solid var(--line); border-bottom-width: 4px; padding: .4em .8em; border-radius: 3px; cursor: pointer; }
   nav.tabs a.lu10 { background: var(--lu10); } nav.tabs a.lu11 { background: #e4a596; }
+  nav.tabs a.on { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .sheet[hidden] { display: none !important; }
   .btn.print { background: var(--gold); }
 
   .sheet { background: var(--panel); border: 4px solid var(--line); box-shadow: 8px 8px 0 rgba(0,0,0,.35); padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
@@ -120,8 +122,9 @@
       <p>Lernziele und Kriterienraster · Das musst du können, so wird die Prüfung bewertet.</p>
     </div>
     <nav class="tabs" aria-label="Einheiten">
-      <a class="lu10" href="#lu10">Alt und Jung · LU 10</a>
-      <a class="lu11" href="#lu11">Gleichungen · LU 11</a>
+      <a class="lu10" href="?lu=10">Alt und Jung · LU 10</a>
+      <a class="lu11" href="?lu=11">Gleichungen · LU 11</a>
+      <a class="all" href="lernziele.html">Beide Themen</a>
       <button class="btn print" onclick="window.print()">Drucken / als PDF</button>
     </nav>
   </header>
@@ -269,5 +272,21 @@
     <p class="note noprint">Tipp: Drucke die Seite (Knopf oben) oder speichere sie als PDF für LearningView. Pro Einheit gibt es eine A4-Seite.</p>
   </section>
 </div>
+<script>
+  // Ein Thema allein anzeigen und drucken: lernziele.html?lu=10 bzw. ?lu=11 (ohne Angabe: beide Themen)
+  (function () {
+    var lu = new URLSearchParams(location.search).get('lu');
+    var names = { '10': 'Alt und Jung · LU 10', '11': 'Gleichungen · LU 11' };
+    if (lu === '10' || lu === '11') {
+      document.querySelectorAll('.sheet').forEach(function (s) { s.hidden = s.id !== 'lu' + lu; });
+      document.title = 'Lernziele ' + names[lu] + ' · MathWelt 3A';
+      document.querySelector('header.top p').textContent = 'Lernziele und Kriterienraster · ' + names[lu];
+    }
+    document.querySelectorAll('nav.tabs a').forEach(function (a) {
+      var m = a.getAttribute('href').match(/lu=(\d+)/);
+      if ((m && m[1] === lu) || (!m && !(lu === '10' || lu === '11'))) a.classList.add('on');
+    });
+  })();
+</script>
 </body>
 </html>

@@ -138,6 +138,7 @@ async function enterWorld(id) {
     if (renderer) { renderer.world = built.world; renderer.rebuild(); }
     else renderer = new Renderer($('#view'), built.world);
     renderer.sky = WORLDS[id].sky;
+    $('#lzLink').href = `lernziele.html?lu=${WORLDS[id].lu}`;
   }
   catch (e) { $('#game').innerHTML = `<div class="fatal">Die 3D-Welt kann nicht angezeigt werden: ${esc(e.message)}<br>Bitte verwende einen aktuellen Browser (Chrome, Edge, Firefox oder Safari).</div>`; return; }
   const p = S.posBy[id] || { x: 36.5, y: G + 1, z: 43.5, yaw: 0 };
