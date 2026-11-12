@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lernziele und Kriterienraster · MathWelt 3A</title>
+<style>
+  :root {
+    --bg: #1b1f1a; --panel: #f4f1e8; --ink: #1d211c; --muted: #5d625a; --line: #2a2a2a;
+    --gold: #e8b931; --gold-soft: #fff3c4; --lu10: #c9a95a; --lu10-dark: #6b5a2a; --lu11: #a5432f;
+    --good: #2f7d32; --boss: #5a2a70;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 22px; }
+  header.top { color: #fff; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+  header.top h1 { margin: 0; font: 800 2rem var(--mono); }
+  header.top h1 span { background: var(--gold); color: #000; padding: 0 .25em; }
+  header.top p { margin: 4px 0 0; color: #cfd4cb; }
+  nav.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  nav.tabs a, .btn { font: 700 .9rem var(--sans); text-decoration: none; color: var(--ink); background: #d8d4c8; border: 2px solid var(--line); border-bottom-width: 4px; padding: .4em .8em; border-radius: 3px; cursor: pointer; }
+  nav.tabs a.lu10 { background: var(--lu10); } nav.tabs a.lu11 { background: #e4a596; }
+  .btn.print { background: var(--gold); }
+
+  .sheet { background: var(--panel); border: 4px solid var(--line); box-shadow: 8px 8px 0 rgba(0,0,0,.35); padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .sheet.lu10 { border-top: 12px solid var(--lu10); } .sheet.lu11 { border-top: 12px solid var(--lu11); }
+  .sheet-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: start; }
+  .sheet-head h2 { margin: 0; font: 800 1.6rem var(--mono); }
+  .sheet-head .sub { margin: 2px 0 0; color: var(--muted); }
+  .exam { background: #fff; border: 3px solid var(--line); padding: 6px 12px; font-weight: 700; text-align: right; }
+  .exam small { display: block; font-weight: 400; color: var(--muted); }
+  h3 { margin: 4px 0 0; font: 800 1.15rem var(--mono); display: flex; align-items: center; gap: 8px; }
+  h3 .chip { font: 700 .75rem var(--sans); background: var(--line); color: #fff; padding: 2px 8px; border-radius: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; color: var(--muted); }
+  .legend b { color: #b8860b; letter-spacing: .08em; }
+
+  .goals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .goal { background: #fff; border: 3px solid var(--line); display: flex; flex-direction: column; }
+  .goal .gh { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 10px 12px; border-bottom: 2px dashed #ccc; align-items: center; }
+  .badge { width: 52px; height: 52px; display: grid; place-items: center; font-size: 1.7rem; background: var(--gold-soft); border: 3px solid #b8860b; box-shadow: inset -4px -4px 0 rgba(184,134,11,.25); }
+  .goal .lz { font: 700 .75rem var(--sans); color: var(--muted); letter-spacing: .06em; }
+  .goal .can { font-weight: 800; line-height: 1.3; }
+  .goal .bname { font-size: .8rem; color: #8a6500; font-weight: 700; }
+  .levels { list-style: none; margin: 0; padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; }
+  .levels li { display: grid; grid-template-columns: 3.2em 1fr; gap: 6px; font-size: .9rem; }
+  .levels .st { color: #b8860b; font-weight: 800; letter-spacing: .05em; white-space: nowrap; }
+  .goal .where { margin-top: auto; padding: 7px 12px; background: #f3efe2; border-top: 2px solid #e1dccb; font-size: .8rem; color: var(--muted); }
+  .goal .where b { color: var(--ink); }
+  .self { display: flex; gap: 10px; padding: 7px 12px; border-top: 2px solid #e1dccb; font-size: .8rem; flex-wrap: wrap; align-items: center; }
+  .self span.box { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--line); vertical-align: -2px; margin-right: 3px; background: #fff; }
+
+  table.raster { width: 100%; border-collapse: collapse; background: #fff; border: 3px solid var(--line); font-size: .9rem; }
+  table.raster th { background: var(--line); color: #fff; text-align: left; padding: 7px 9px; font-size: .8rem; letter-spacing: .03em; }
+  table.raster td { border-top: 2px solid #ddd; padding: 8px 9px; vertical-align: top; }
+  table.raster td.task { font-weight: 800; white-space: nowrap; }
+  table.raster td.task small { display: block; font-weight: 400; color: var(--muted); white-space: normal; }
+  table.raster td.pts { text-align: center; font: 800 1.05rem var(--mono); width: 4.2em; }
+  table.raster td.got { width: 4.2em; }
+  table.raster td.got span { display: inline-block; width: 2.6em; height: 1.4em; border: 2px solid var(--line); background: #fff; }
+  table.raster td.tip { color: var(--muted); font-size: .82rem; }
+  table.raster td.tip b { color: var(--ink); }
+  table.raster tr.total td { background: var(--gold-soft); font-weight: 800; border-top: 3px solid var(--line); }
+  .boss { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; background: #efe6f3; border: 3px solid var(--boss); padding: 10px 14px; }
+  .boss .bi { font-size: 2rem; }
+  .boss b { color: var(--boss); }
+  .note { font-size: .8rem; color: var(--muted); margin: 0; }
+  .howto { background: #fff; border: 3px solid var(--line); padding: 12px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .howto div b { display: block; font-family: var(--mono); }
+  @media (max-width: 760px) {
+    .goals, .howto { grid-template-columns: 1fr; }
+    table.raster td.tip, table.raster th.tip { display: none; }
+    .sheet { padding: 16px; }
+  }
+
+  /* Druck: je Einheit eine A4-Seite, weisser Hintergrund */
+  @page { size: A4 portrait; margin: 9mm; }
+  @media print {
+    body { background: #fff; font-size: 8.9pt; }
+    .wrap { padding: 0; gap: 0; max-width: none; }
+    header.top, nav.tabs, .noprint { display: none !important; }
+    .sheet { box-shadow: none; border-width: 2px; padding: 10px 12px; gap: 8px; break-after: page; page-break-after: always; }
+    .sheet:last-of-type { break-after: auto; page-break-after: auto; }
+    .goals { gap: 7px; }
+    .goal .gh { padding: 6px 8px; grid-template-columns: 40px 1fr; }
+    .badge { width: 40px; height: 40px; font-size: 1.3rem; }
+    .levels { padding: 5px 8px; gap: 2px; }
+    .levels li { font-size: 8.4pt; }
+    .goal .where, .self { padding: 4px 8px; }
+    table.raster td, table.raster th { padding: 4px 6px; }
+    table.raster { font-size: 8.4pt; }
+    /* kompakter, damit jede Einheit auf eine A4-Seite passt */
+    body { font-size: 8pt; line-height: 1.3; }
+    .legend { display: none; }
+    .sheet { gap: 6px; }
+    .sheet-head h2 { font-size: 15pt; }
+    .exam { padding: 3px 8px; }
+    h3 { font-size: 10.5pt; margin: 0; }
+    .goal .can { font-size: 8.6pt; }
+    .goal .gh { grid-template-columns: 30px 1fr; gap: 7px; padding: 4px 7px; }
+    .badge { width: 30px; height: 30px; font-size: 1rem; border-width: 2px; }
+    .levels li { font-size: 7.7pt; grid-template-columns: 2.8em 1fr; }
+    .goal .where, .self { font-size: 7.2pt; padding: 3px 7px; }
+    table.raster { font-size: 7.8pt; }
+    table.raster td.tip { font-size: 7.2pt; }
+    table.raster td, table.raster th { padding: 3px 5px; }
+    table.raster td.pts { font-size: 9pt; }
+    .boss { padding: 5px 9px; font-size: 7.8pt; }
+    .boss .bi { font-size: 1.3rem; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>MathWelt <span>3A</span></h1>
+      <p>Lernziele und Kriterienraster · Das musst du können, so wird die Prüfung bewertet.</p>
+    </div>
+    <nav class="tabs" aria-label="Einheiten">
+      <a class="lu10" href="#lu10">Alt und Jung · LU 10</a>
+      <a class="lu11" href="#lu11">Gleichungen · LU 11</a>
+      <button class="btn print" onclick="window.print()">Drucken / als PDF</button>
+    </nav>
+  </header>
+
+  <section class="howto noprint" aria-label="So liest du diese Seite">
+    <div><b>1 · Lernziel</b>Jedes Lernziel ist ein Abzeichen im Spiel. Abzeichen: 5 Aufgaben ab ★★ im ersten Versuch ohne Lösungshilfe. Gold: 3 davon auf ★★★.</div>
+    <div><b>2 · Niveaus</b>★ Grundanspruch: Das brauchen alle. ★★ Standard: Das prüft die Prüfung vor allem. ★★★ Erweiterung: für Profis.</div>
+    <div><b>3 · Kriterienraster</b>So bekommst du die Punkte an der Prüfung. Kreuze vorher an, wie sicher du bist, und übe im passenden Gebäude.</div>
+  </section>
+
+  <!-- ===================== LU 10 ===================== -->
+  <section class="sheet lu10" id="lu10">
+    <div class="sheet-head">
+      <div><h2>Welt «Alt und Jung»</h2><p class="sub">mathbuch 3, LU 10 · S. 26–29 · Woche 1–2</p></div>
+      <div class="exam">Prüfung LU 10<small>Freitag Woche 2 (L10) · 45 Minuten · Taschenrechner erlaubt</small></div>
+    </div>
+    <div class="legend"><span><b>★</b> Grundanspruch</span><span><b>★★</b> Standard</span><span><b>★★★</b> Erweiterung</span><span>🏅 = Abzeichen im Spiel</span></div>
+
+    <h3>Meine Lernziele <span class="chip">LZ5–LZ8</span></h3>
+    <div class="goals">
+      <article class="goal">
+        <div class="gh"><div class="badge">📊</div><div><div class="lz">LZ5 · 🏅 <span class="bname">Pyramiden-Leser/in</span></div><div class="can">Ich kann eine Alterspyramide lesen und ihre Form beschreiben.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich lese einen Wert ab: Altersklasse, Männer links, Frauen rechts, Einheit «in 1000».</li>
+          <li><span class="st">★★</span>Ich vergleiche Altersgruppen und erkenne die Form: Pyramide, Glocke oder Urne.</li>
+          <li><span class="st">★★★</span>Ich erkläre, was die Form über Geburten und Lebenserwartung aussagt.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Pyramiden-Museum · mathbuch S. 26 A1, S. 27 A3</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+      <article class="goal">
+        <div class="gh"><div class="badge">％</div><div><div class="lz">LZ6 · 🏅 <span class="bname">Prozent-Profi</span></div><div class="can">Ich kann absolute und relative Zahlen unterscheiden und Anteile in % berechnen.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich berechne einen Anteil: Teil : Ganzes · 100.</li>
+          <li><span class="st">★★</span>Ich berechne den Grundwert und vergleiche zwei Gemeinden mit ihren Anteilen.</li>
+          <li><span class="st">★★★</span>Ich berechne Veränderungen in % und erkläre, warum «mehr Personen» nicht «grösserer Anteil» heisst.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Prozent-Markt · mathbuch S. 28 A7, S. 29 A8</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+      <article class="goal">
+        <div class="gh"><div class="badge">📈</div><div><div class="lz">LZ7 · 🏅 <span class="bname">Trend-Späher/in</span></div><div class="can">Ich kann aus Tabellen und Graphen Entwicklungen ablesen und in eigenen Worten beschreiben.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich lese Werte aus einer Tabelle oder einem Liniendiagramm ab.</li>
+          <li><span class="st">★★</span>Ich berechne, um wie viel ein Wert zu- oder abgenommen hat.</li>
+          <li><span class="st">★★★</span>Ich beschreibe eine Entwicklung treffend («steigt stark», «flacht ab») und mit Zahlen.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Zeit-Observatorium · mathbuch S. 28 A6/A7, S. 29 A8</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+      <article class="goal">
+        <div class="gh"><div class="badge">📰</div><div><div class="lz">LZ8 · 🏅 <span class="bname">Faktenchecker/in</span></div><div class="can">Ich kann statistische Aussagen mit Zahlen prüfen und kritische Fragen dazu stellen.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich vergleiche eine Aussage mit einem Wert aus der Tabelle.</li>
+          <li><span class="st">★★</span>Ich sage, ob die Aussage stimmt, und begründe es mit Zahlen.</li>
+          <li><span class="st">★★★</span>Ich stelle kritische, statistische Fragen: absolut oder relativ? Welcher Zeitraum? Welche Quelle?</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Faktencheck-Redaktion · mathbuch S. 27 A4, S. 28 A6</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+    </div>
+
+    <h3>Kriterienraster Prüfung LU 10 <span class="chip">5 Punkte</span></h3>
+    <table class="raster">
+      <thead><tr><th>Aufgabe</th><th>Das zeigst du für den Punkt</th><th class="tip">Tipp</th><th>Punkte</th><th>Erreicht</th></tr></thead>
+      <tbody>
+        <tr><td class="task">A1 Diagramm lesen<small>LZ5</small></td><td>Du liest aus der Alterspyramide den richtigen Wert bzw. die richtige Altersklasse ab und beachtest Achsen und Einheit.</td><td class="tip">Männer links, Frauen rechts. Achte auf «in 1000».</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A2 Absolut und relativ<small>LZ6</small></td><td>Du verstehst den Unterschied zwischen Anzahl Personen und Anteil und berechnest den Anteil in % korrekt.</td><td class="tip"><b>Beispiel:</b> 400 von 2000 → 400 : 2000 · 100 = 20 %</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A3 Graph beschreiben<small>LZ7</small></td><td>Du beschreibst die Entwicklung im Liniendiagramm in zwei eigenen Sätzen treffend.</td><td class="tip">Nenne Richtung, Tempo und Zeitraum: «Von 1920 bis 2020 steigt …»</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A4 Aussage überprüfen<small>LZ8</small></td><td>Du vergleichst die Aussage mit den Zahlen aus der Tabelle und begründest dein Urteil mit Zahlen.</td><td class="tip">«Halbiert» heisst: neuer Wert = alter Wert : 2. Rechne es nach.</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A5 Kritische Fragen<small>LZ8</small></td><td>Du formulierst zwei sinnvolle Fragen, die man mit Daten beantworten kann und die die Schlagzeile hinterfragen.</td><td class="tip">Frag nach Anteil, Zeitraum, Quelle, nicht nach Meinungen.</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr class="total"><td class="task">Total</td><td>Antwortsätze schreiben · mit Zahlen begründen</td><td class="tip"></td><td class="pts">5</td><td class="got"><span></span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="boss"><div class="bi">🔮</div><div><b>Boss: Nebel-Orakel</b> · ab L7 in der Boss-Arena. 3 Phasen = deine Lernziele: Pyramiden (LZ5) → Prozent und Graphen (LZ6, LZ7) → Falschmeldungen (LZ8). Wo du im Kampf Fehler machst, übst du vor der Prüfung.</div></div>
+  </section>
+
+  <!-- ===================== LU 11 ===================== -->
+  <section class="sheet lu11" id="lu11">
+    <div class="sheet-head">
+      <div><h2>Welt «Gleichungen»</h2><p class="sub">mathbuch 3, LU 11 · S. 30–33 · Woche 3–4</p></div>
+      <div class="exam">Prüfung LU 11<small>Freitag Woche 4 (L19) · 45 Minuten</small></div>
+    </div>
+    <div class="legend"><span><b>★</b> Grundanspruch</span><span><b>★★</b> Standard</span><span><b>★★★</b> Erweiterung</span><span>🏅 = Abzeichen im Spiel</span></div>
+
+    <h3>Meine Lernziele <span class="chip">LZ1–LZ4</span></h3>
+    <div class="goals">
+      <article class="goal">
+        <div class="gh"><div class="badge">⚖️</div><div><div class="lz">LZ1 · 🏅 <span class="bname">Umform-Ass</span></div><div class="can">Ich kann Gleichungen mit Äquivalenzumformungen Schritt für Schritt lösen.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>x + 7 = 15 oder 4x = 32: auf beiden Seiten dasselbe rechnen (Waage).</li>
+          <li><span class="st">★★</span>3x + 5 = 20, x auf beiden Seiten, Klammern: zuerst ±, dann · oder :.</li>
+          <li><span class="st">★★★</span>Mit Brüchen und mehreren Klammern. Ich erkenne, ob eine Gleichung unlösbar oder allgemeingültig ist.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Waage-Werkstatt, Umkehr-Turm, Klammer-Mine · mathbuch S. 30, S. 31 A2–A5, S. 33 A10</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+      <article class="goal">
+        <div class="gh"><div class="badge">✅</div><div><div class="lz">LZ2 · 🏅 <span class="bname">Proben-Profi</span></div><div class="can">Ich kann meine Lösung mit der Probe überprüfen.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich setze die Lösung in die ursprüngliche Gleichung ein und rechne beide Seiten aus.</li>
+          <li><span class="st">★★</span>Auch wenn x auf beiden Seiten steht. Ich entscheide und schreibe einen Antwortsatz.</li>
+          <li><span class="st">★★★</span>Auch mit Klammern. Ich erkenne mit der Probe eine falsche Lösung.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Proben-Labor, Probe-Bonus in der Klammer-Mine · mathbuch S. 32 A6 B, A7</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+      <article class="goal">
+        <div class="gh"><div class="badge">🧩</div><div><div class="lz">LZ3 · 🏅 <span class="bname">Rätselknacker/in</span></div><div class="can">Ich kann eine Sachsituation in eine Gleichung übersetzen und lösen.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich wähle die passende Gleichung zu einem Zahlenrätsel.</li>
+          <li><span class="st">★★</span>Ich stelle die Gleichung selbst auf und löse sie.</li>
+          <li><span class="st">★★★</span>Alters- und Sachaufgaben (z. B. Abo-Vergleich): Variable festlegen, lösen, Probe, Antwortsatz.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Rätsel-Bibliothek · mathbuch S. 31 A2 I, S. 32 A8</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+      <article class="goal">
+        <div class="gh"><div class="badge">🔍</div><div><div class="lz">LZ4 · 🏅 <span class="bname">Fehlerdetektiv/in</span></div><div class="can">Ich kann meine Umformungsschritte nachvollziehbar notieren und Fehler in einem Lösungsweg finden.</div></div></div>
+        <ul class="levels">
+          <li><span class="st">★</span>Ich notiere jeden Schritt rechts neben dem Strich (| −3, | :4) und finde die falsche Zeile.</li>
+          <li><span class="st">★★</span>Ich finde den Fehler und gebe die richtige Lösung an.</li>
+          <li><span class="st">★★★</span>Auch bei Klammern («Minus vor der Klammer»). Ich erkläre, was falsch war.</li>
+        </ul>
+        <div class="where"><b>Üben:</b> Detektiv-Büro, Klammer-Mine · mathbuch S. 32 A6 A</div>
+        <div class="self">Das kann ich: <span><span class="box"></span>noch unsicher</span><span><span class="box"></span>fast</span><span><span class="box"></span>sicher</span></div>
+      </article>
+    </div>
+
+    <h3>Kriterienraster Prüfung LU 11 <span class="chip">5 Punkte</span></h3>
+    <table class="raster">
+      <thead><tr><th>Aufgabe</th><th>Das zeigst du für den Punkt</th><th class="tip">Tipp</th><th>Punkte</th><th>Erreicht</th></tr></thead>
+      <tbody>
+        <tr><td class="task">A1 Gleichung lösen<small>LZ1, LZ4</small></td><td>Du formst korrekt um und notierst jeden Schritt vollständig und nachvollziehbar rechts neben dem Strich.</td><td class="tip"><b>Beispiel:</b> 3x + 5 = 20 | −5 → 3x = 15 | :3 → x = 5</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A2 Gleichung mit Klammern<small>LZ1, LZ4</small></td><td>Du löst die Klammern richtig auf, notierst die Schritte nachvollziehbar und findest die richtige Lösung.</td><td class="tip">Minus vor der Klammer ändert alle Vorzeichen in der Klammer.</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A3 Probe<small>LZ2</small></td><td>Du setzt den Wert in die ursprüngliche Gleichung ein, rechnest beide Seiten aus und schreibst einen korrekten Antwortsatz.</td><td class="tip">«Links 17, rechts 17: Die Lösung stimmt.»</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A4 Textgleichung<small>LZ3</small></td><td>Du übersetzt den Text in eine korrekte Gleichung mit einer Variablen. Sie muss noch nicht gelöst sein.</td><td class="tip">Was passiert zuerst mit der Zahl? Braucht es eine Klammer?</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr><td class="task">A5 Fehlersuche<small>LZ4</small></td><td>Du markierst die Zeile mit dem Fehler und stellst den Umformungsschritt richtig.</td><td class="tip">Prüfe jede Zeile: Wurde auf beiden Seiten dasselbe gerechnet?</td><td class="pts">1</td><td class="got"><span></span></td></tr>
+        <tr class="total"><td class="task">Total</td><td>Schritte notieren · Probe machen · Antwortsätze</td><td class="tip"></td><td class="pts">5</td><td class="got"><span></span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="boss"><div class="bi">🗿</div><div><b>Boss: Gleichungs-Golem</b> · ab L17 in der Boss-Arena. 3 Phasen = deine Lernziele: Waage-Fäuste (LZ1) → Klammer-Panzer und Probe (LZ1, LZ2) → Trick-Spiegel: Fehler finden und Textgleichungen (LZ3, LZ4).</div></div>
+    <p class="note noprint">Tipp: Drucke die Seite (Knopf oben) oder speichere sie als PDF für LearningView. Pro Einheit gibt es eine A4-Seite.</p>
+  </section>
+</div>
+</body>
+</html>

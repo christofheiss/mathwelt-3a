@@ -297,6 +297,7 @@ function renderStand() {
     </div>
     ${Object.values(WORLDS).map(w0 => `<h2>${esc(w0.name)}</h2><div class="tablewrap"><table><thead><tr><th scope="col">Richtig / bearbeitet</th><th scope="col">★</th><th scope="col">★★</th><th scope="col">★★★</th></tr></thead><tbody>${rows(w0)}</tbody></table></div>`).join('')}
     <h2>Abzeichen</h2>${badgesHtml()}
+    <p><a class="btn" href="lernziele.html" target="_blank" rel="noopener">📋 Lernziele und Kriterienraster</a></p>
     <h2>Boss-Kämpfe</h2>
     <div class="tiles">${Object.keys(BOSSES).map(w0 => { const st = S.boss[w0]; return `<div><b>${st.wins ? 'besiegt ✓' : '–'}</b><span>${esc(BOSSES[w0].name)} · ${st.fights} ${st.fights === 1 ? 'Kampf' : 'Kämpfe'}, ${st.wins} ${st.wins === 1 ? 'Sieg' : 'Siege'}</span></div>`; }).join('')}
       <div><b>${S.probes.ok} / ${S.probes.n}</b><span>Proben richtig (Bonus)</span></div></div>
